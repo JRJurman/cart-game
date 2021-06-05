@@ -10,6 +10,10 @@
 --macro keep('IntIterator')
 -cp /home/jrjurman/haxelib/hscript/2,4,0
 -D hscript=2.4.0
+-cp /home/jrjurman/haxelib/ldtk-haxe-api/0,9,3-rc,1/src
+-D ldtk-haxe-api=0.9.3-rc.1
+-cp /home/jrjurman/haxelib/deepnightLibs/git/src
+-D deepnightLibs=1.0.59
 -cp source
 -D tools=7.9.0
 -D lime-canvas

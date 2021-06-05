@@ -4,13 +4,6 @@ import flixel.FlxG;
 import flixel.FlxObject;
 import flixel.FlxSprite;
 import flixel.math.FlxPoint;
-import flixel.util.FlxColor;
-
-enum CartDirection
-{
-	HORIZONTAL;
-	VERTICAL;
-}
 
 class Player extends FlxSprite
 {
@@ -26,17 +19,30 @@ class Player extends FlxSprite
 		// makeGraphic(16, 22, FlxColor.BLUE);
 
 		// use an animation instead of a simple graphic
-		loadGraphic(AssetPaths.link_ooa_cart__png, true, 16, 22);
+		loadGraphic(AssetPaths.link_ooa_cart_shooting__png, true, 17, 23);
 
 		// set the animations for our player based on the sprite sheet
-		animation.add("vertical_cart_facing_down", [0, 1], 6, true);
-		animation.add("vertical_cart_facing_up", [2, 3], 6, true);
-		animation.add("vertical_cart_facing_left", [4, 5], 6, true);
-		animation.add("vertical_cart_facing_right", [6, 7], 6, true);
-		animation.add("horizontal_cart_facing_down", [8, 9], 6, true);
-		animation.add("horizontal_cart_facing_up", [10, 11], 6, true);
-		animation.add("horizontal_cart_facing_left", [12, 13], 6, true);
-		animation.add("horizontal_cart_facing_right", [14, 15], 6, true);
+		var cartDirections:Array<String> = ["vertical", "horizontal"];
+		var playerDirections:Array<String> = [
+			"downleft",
+			"down",
+			"upright",
+			"up",
+			"downright",
+			"upleft",
+			"left",
+			"unused",
+			"right"
+		];
+		for (cartDirection in cartDirections)
+		{
+			for (playerDirection in playerDirections)
+			{
+				var frames:Array<Int> = getSpriteAnimationFrames(cartDirection, playerDirection);
+				trace(cartDirection, playerDirection, frames);
+				animation.add(cartDirection + "_cart_facing_" + playerDirection, frames, 6, true);
+			}
+		}
 
 		drag.x = drag.y = INITIAL_DRAG;
 	}
@@ -47,6 +53,33 @@ class Player extends FlxSprite
 		updateDirection(); // call our test function for direction pointing
 
 		super.update(elapsed);
+	}
+
+	// helper function to parse which frames to load from the sprite
+	function getSpriteAnimationFrames(cartDirection:String, playerDirection:String)
+	{
+		var firstFrame:Int = 0;
+
+		// the second set of sprites are the horizontal cart frames
+		if (cartDirection == "horizontal")
+			firstFrame += 18;
+
+		// make an array of all the different positions, and we'll just indexOf it to get which one we need
+		var positionsInSheet:Array<String> = [
+			"downleft",
+			"down",
+			"upright",
+			"up",
+			"downright",
+			"upleft",
+			"left",
+			"unused",
+			"right"
+		];
+
+		firstFrame += (positionsInSheet.indexOf(playerDirection) * 2);
+
+		return [firstFrame, firstFrame + 1];
 	}
 
 	// helper function for Acceleration
@@ -72,33 +105,26 @@ class Player extends FlxSprite
 		var cartKey:String = "";
 		var dirKey:String = "";
 
+		// for now, always facing up, to fix later
+		facing = FlxObject.UP;
+
 		// check which keys are pressed
 		if (FlxG.keys.anyPressed([UP, W]))
-		{
-			facing = FlxObject.UP;
-			dirKey = "facing_up";
-		}
+			dirKey += "up";
 		if (FlxG.keys.anyPressed([DOWN, S]))
-		{
-			facing = FlxObject.DOWN;
-			dirKey = "facing_down";
-		}
+			dirKey += "down";
 		if (FlxG.keys.anyPressed([LEFT, A]))
-		{
-			facing = FlxObject.LEFT;
-			dirKey = "facing_left";
-		}
+			dirKey += "left";
 		if (FlxG.keys.anyPressed([RIGHT, D]))
-		{
-			facing = FlxObject.RIGHT;
-			dirKey = "facing_right";
-		}
+			dirKey += "right";
 
 		if (FlxG.keys.anyPressed([SHIFT]))
-			cartKey = "horizontal_cart"
+			cartKey = "horizontal"
 		else
-			cartKey = "vertical_cart";
+			cartKey = "vertical";
 
-		animation.play(cartKey + "_" + dirKey);
+		var animationKey:String = cartKey + "_cart_facing_" + dirKey;
+		trace("animationKey:", animationKey);
+		animation.play(animationKey);
 	}
 }

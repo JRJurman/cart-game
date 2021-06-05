@@ -19,7 +19,7 @@ class ApplicationMain
 
 		#if (js && html5)
 		#if (munit || utest)
-		lime.system.System.embed("CartGame", null, 640, 480);
+		lime.system.System.embed("CartGame", null, 240, 160);
 		#end
 		#else
 		create(null);
@@ -32,7 +32,7 @@ class ApplicationMain
 
 		ManifestResources.init(config);
 
-		app.meta["build"] = "4";
+		app.meta["build"] = "5";
 		app.meta["company"] = "TallyHawk";
 		app.meta["file"] = "CartGame";
 		app.meta["name"] = "CartGame";
@@ -51,14 +51,14 @@ class ApplicationMain
 			element: null,
 			frameRate: 60,
 			#if !web fullscreen: false, #end
-			height: 480,
+			height: 160,
 			hidden: #if munit true #else false #end,
 			maximized: false,
 			minimized: false,
 			parameters: {},
 			resizable: false,
 			title: "CartGame",
-			width: 640,
+			width: 240,
 			x: null,
 			y: null,
 		};
