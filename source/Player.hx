@@ -1,0 +1,150 @@
+package;
+
+import flixel.FlxG;
+import flixel.FlxObject;
+import flixel.FlxSprite;
+import flixel.math.FlxPoint;
+
+class Player extends FlxSprite
+{
+	static inline var SPEED:Float = 200;
+	static inline var INITIAL_DRAG:Float = 1600;
+
+	var playerCartDirection:String = "horizontal";
+	var playerShootingDirection:String = "right";
+
+	// while not required, we're saving all of these so we can verify
+	// later (before failing to load it) if we have the animation key
+	var possibleAnimationKeys:Array<String> = new Array<String>();
+
+	// constructor for a new player
+	public function new(x:Float = 0, y:Float = 0)
+	{
+		super(x, y);
+
+		// for now, always facing up, to fix later
+		facing = FlxObject.UP;
+
+		// use a simple graphic, instead of a sprite sheet
+		// makeGraphic(16, 22, FlxColor.BLUE);
+
+		// use an animation instead of a simple graphic
+		loadGraphic(AssetPaths.link_ooa_cart_shooting__png, true, 17, 23);
+		buildPlayerAnimations();
+
+		drag.x = drag.y = INITIAL_DRAG;
+	}
+
+	override function update(elapsed:Float)
+	{
+		updateAcceleration(); // call our Acceleration helper function
+		updatePlayerDirection(); // call our function for direction pointing
+		updatePlayerAnimation(); // call our function to update the animation based on player props
+
+		super.update(elapsed);
+	}
+
+	public function setCartDirection(newCartDirection:String)
+	{
+		playerCartDirection = newCartDirection;
+	}
+
+	function updatePlayerDirection()
+	{
+		playerShootingDirection = "";
+
+		// check which keys are pressed (up or down)
+		if (FlxG.keys.anyPressed([UP, W]))
+			playerShootingDirection += "up";
+		else if (FlxG.keys.anyPressed([DOWN, S]))
+			playerShootingDirection += "down";
+
+		// check which keys are pressed (left or right)
+		if (FlxG.keys.anyPressed([LEFT, A]))
+			playerShootingDirection += "left";
+		else if (FlxG.keys.anyPressed([RIGHT, D]))
+			playerShootingDirection += "right";
+	}
+
+	// helper function to add all the animations that are possible with the sprite sheet
+	function buildPlayerAnimations()
+	{
+		// set the animations for our player based on the sprite sheet
+		var cartDirections:Array<String> = ["vertical", "horizontal"];
+		var playerDirections:Array<String> = [
+			"downleft",
+			"down",
+			"upright",
+			"up",
+			"downright",
+			"upleft",
+			"left",
+			"unused",
+			"right"
+		];
+		for (cartDirection in cartDirections)
+		{
+			for (playerDirection in playerDirections)
+			{
+				var frames:Array<Int> = getSpriteAnimationFrames(cartDirection, playerDirection);
+				var animationKey = cartDirection + "_cart_facing_" + playerDirection;
+				animation.add(animationKey, frames, 6, true);
+				possibleAnimationKeys.push(animationKey);
+			}
+		}
+	}
+
+	// helper function to parse which frames to load from the sprite
+	function getSpriteAnimationFrames(cartDirection:String, playerDirection:String)
+	{
+		var firstFrame:Int = 0;
+
+		// the second set of sprites are the horizontal cart frames
+		if (cartDirection == "horizontal")
+			firstFrame += 18;
+
+		// make an array of all the different positions, and we'll just indexOf it to get which one we need
+		// this is based on the sprite sheet, this needs to change if "link_ooa_cart_shooting.png" changes.
+		var positionsInSheet:Array<String> = [
+			"downleft",
+			"down",
+			"upright",
+			"up",
+			"downright",
+			"upleft",
+			"left",
+			"unused",
+			"right"
+		];
+
+		firstFrame += (positionsInSheet.indexOf(playerDirection) * 2);
+
+		return [firstFrame, firstFrame + 1];
+	}
+
+	// helper function for Acceleration
+	function updateAcceleration()
+	{
+		var accelerating:Bool = false;
+
+		accelerating = FlxG.keys.anyPressed([SPACE]);
+
+		// determine the new speed
+		var newSpeed:Float = if (accelerating) SPEED else 0;
+		var newAngle:Float = 0;
+
+		// set the velocity, and what angle it should be at
+		velocity.set(newSpeed, 0);
+		velocity.rotate(FlxPoint.weak(0, 0), newAngle);
+	}
+
+	// helper function for testing facing directions
+	function updatePlayerAnimation()
+	{
+		var animationKey = playerCartDirection + "_cart_facing_" + playerShootingDirection;
+		if (possibleAnimationKeys.contains(animationKey))
+		{
+			animation.play(animationKey);
+		}
+	}
+}
