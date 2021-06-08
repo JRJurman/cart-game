@@ -4,14 +4,18 @@ import flixel.FlxG;
 import flixel.FlxObject;
 import flixel.FlxSprite;
 import flixel.math.FlxPoint;
+import flixel.util.FlxColor;
 
 class Player extends FlxSprite
 {
-	static inline var SPEED:Float = 200;
+	static inline var SPEED:Float = 30;
 	static inline var INITIAL_DRAG:Float = 1600;
 
-	var playerCartDirection:String = "horizontal";
-	var playerShootingDirection:String = "right";
+	public var playerCartDirection:String = "horizontal";
+	public var playerShootingDirection:String = "right";
+	public var playerCartOrientation:Int = 0;
+	public var playerIsTurning:Bool = false;
+	public var playerHasTurned:Bool = false;
 
 	// while not required, we're saving all of these so we can verify
 	// later (before failing to load it) if we have the animation key
@@ -24,9 +28,6 @@ class Player extends FlxSprite
 
 		// for now, always facing up, to fix later
 		facing = FlxObject.UP;
-
-		// use a simple graphic, instead of a sprite sheet
-		// makeGraphic(16, 22, FlxColor.BLUE);
 
 		// use an animation instead of a simple graphic
 		loadGraphic(AssetPaths.link_ooa_cart_shooting__png, true, 17, 23);
@@ -41,6 +42,14 @@ class Player extends FlxSprite
 		updatePlayerDirection(); // call our function for direction pointing
 		updatePlayerAnimation(); // call our function to update the animation based on player props
 
+		// cursor debugging
+		// var sprite = new FlxSprite();
+		// sprite.makeGraphic(15, 15, FlxColor.TRANSPARENT);
+		// FlxG.mouse.load(sprite.pixels);
+
+		// x = FlxG.mouse.x;
+		// y = FlxG.mouse.y;
+
 		super.update(elapsed);
 	}
 
@@ -49,9 +58,42 @@ class Player extends FlxSprite
 		playerCartDirection = newCartDirection;
 	}
 
+	// function to mark the player as turning
+	// they shouldn't be able to do other actions here
+	public function startTurning()
+	{
+		playerIsTurning = true;
+		playerHasTurned = false;
+	}
+
+	public function turn()
+	{
+		playerIsTurning = true;
+		playerHasTurned = true;
+	}
+
+	public function finishTurning()
+	{
+		playerIsTurning = false;
+		playerHasTurned = false;
+	}
+
+	public function rotatePlayer(rotation:String)
+	{
+		if (rotation == "clockwise")
+			playerCartOrientation = (playerCartOrientation + 90) % 360;
+		else if (rotation == "counterclockwise")
+			playerCartOrientation = (playerCartOrientation - 90) % 360;
+
+		if (playerCartDirection == "vertical")
+			playerCartDirection = "horizontal";
+		else
+			playerCartDirection = "vertical";
+	}
+
 	function updatePlayerDirection()
 	{
-		playerShootingDirection = "";
+		playerShootingDirection = null;
 
 		// check which keys are pressed (up or down)
 		if (FlxG.keys.anyPressed([UP, W]))
@@ -64,6 +106,9 @@ class Player extends FlxSprite
 			playerShootingDirection += "left";
 		else if (FlxG.keys.anyPressed([RIGHT, D]))
 			playerShootingDirection += "right";
+
+		// if the shooting direction is still null, set it to right
+		playerShootingDirection = "right";
 	}
 
 	// helper function to add all the animations that are possible with the sprite sheet
@@ -130,12 +175,12 @@ class Player extends FlxSprite
 		accelerating = FlxG.keys.anyPressed([SPACE]);
 
 		// determine the new speed
-		var newSpeed:Float = if (accelerating) SPEED else 0;
-		var newAngle:Float = 0;
+		var newSpeed:Float = if (accelerating) SPEED * 2 else SPEED;
 
-		// set the velocity, and what angle it should be at
+		// set the velocity
 		velocity.set(newSpeed, 0);
-		velocity.rotate(FlxPoint.weak(0, 0), newAngle);
+
+		velocity.rotate(FlxPoint.weak(0, 0), playerCartOrientation);
 	}
 
 	// helper function for testing facing directions
