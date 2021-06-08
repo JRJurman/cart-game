@@ -34,6 +34,10 @@ class Player extends FlxSprite
 		buildPlayerAnimations();
 
 		drag.x = drag.y = INITIAL_DRAG;
+
+		// set the character sprite to just be the cart
+		setSize(16, 16);
+		offset.set(0, 22 - 16);
 	}
 
 	override function update(elapsed:Float)

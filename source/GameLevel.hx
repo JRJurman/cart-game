@@ -73,8 +73,12 @@ class GameLevel
 			return null;
 
 		// if trackDirection is something (but not turning), we can mark the player as not turning
-		if (trackDirection != "turning")
+		var isOnTurningTile = trackDirection.indexOf("clockwise") > -1;
+		if (!isOnTurningTile)
+		{
 			player.finishTurning();
+			return null;
+		}
 
 		// if we are turning, tell the player they are turning, and that we have to finish
 		// before you can turn again (this will also prevent other actions like reversing)
@@ -82,9 +86,6 @@ class GameLevel
 		{
 			player.startTurning();
 		}
-
-		var XOFFSET = 1;
-		var YOFFSET = 0;
 
 		// if we are turning, (and haven't turned yet)
 		// wait until we are actually at the edge of the tile
@@ -95,24 +96,27 @@ class GameLevel
 			if (player.playerCartDirection == "horizontal")
 			{
 				// if the player is moving horizontally, we need to wait until the midpoint x matches
-				var mapAndPlayerXIsClose = Math.abs(map.getGraphicMidpoint().x - player.getMidpoint().x) < 0.35;
+				var mapAndPlayerXDiff = map.getGraphicMidpoint().x - player.getMidpoint().x;
+				var mapAndPlayerXIsClose = Math.abs(mapAndPlayerXDiff) < 0.35;
 				if (mapAndPlayerXIsClose)
 				{
 					// rotate the player, and snap them to the midpoint (so that we don't get off track)
 					gamePlayer.rotatePlayer(trackDirection);
-					player.x = map.getMidpoint().x - XOFFSET;
+					player.x = player.x - (mapAndPlayerXDiff);
 					player.turn();
 				}
 			}
 			else if (player.playerCartDirection == "vertical")
 			{
 				// if the player is moving vertically, we need to wait until the midpoint y matches
-				var mapAndPlayerYIsClose = Math.abs(map.getGraphicMidpoint().y - player.getMidpoint().y) < 0.35;
+				var mapAndPlayerYDiff = map.getGraphicMidpoint().y - player.getMidpoint().y;
+
+				var mapAndPlayerYIsClose = Math.abs(mapAndPlayerYDiff) < 0.35;
 				if (mapAndPlayerYIsClose)
 				{
 					// rotate the player, and snap them to the midpoint (so that we don't get off track)
 					gamePlayer.rotatePlayer(trackDirection);
-					player.y = map.getMidpoint().y - YOFFSET;
+					player.y = player.y - (mapAndPlayerYDiff);
 					player.turn();
 				}
 			}
@@ -137,10 +141,10 @@ class GameLevel
 
 		// horizontal and vertical tracks
 		// these can probably be ignored, we really only need to care about turning
-		// if (frameX == 16 && frameY == 64)
-		// 	return "horizontal";
-		// if (frameX == 0 && frameY == 64)
-		// 	return "vertical";
+		if (frameX == 16 && frameY == 64)
+			return "horizontal";
+		if (frameX == 0 && frameY == 64)
+			return "vertical";
 
 		// turns, which we should turn halfway through
 		if (frameX >= 64 && frameY >= 32)
