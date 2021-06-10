@@ -37,7 +37,7 @@ class Player extends FlxSprite
 
 		// set the character sprite to just be the cart
 		setSize(16, 16);
-		offset.set(0, 22 - 16);
+		offset.set(0, 26 - 16);
 	}
 
 	override function update(elapsed:Float)
@@ -50,7 +50,6 @@ class Player extends FlxSprite
 		// var sprite = new FlxSprite();
 		// sprite.makeGraphic(15, 15, FlxColor.TRANSPARENT);
 		// FlxG.mouse.load(sprite.pixels);
-
 		// x = FlxG.mouse.x;
 		// y = FlxG.mouse.y;
 

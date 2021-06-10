@@ -5,9 +5,17 @@ import flixel.FlxSprite;
 import flixel.FlxState;
 import flixel.group.FlxSpriteGroup;
 import flixel.math.FlxPoint;
+import ldtk.Layer_AutoLayer.AutoTile;
 
 class GameLevel
 {
+	static var TILESET_CART_AND_MAP:Array<String> = [
+		"wall", "wall", "door", "door", "wall", "wall", "wall", "wall", "door", "door", "wall", "wall", "wall", "ground", "track-stop", "switch",
+		"track-turn-north-west", "track-turn-north-east", "wall", "wall", "wall", "wall", "track-turn-south-west", "track-turn-south-east", "track-vertical",
+		"track-horizontal"
+	];
+	static var TILE_SIZE:Int = 16;
+
 	var ldtkProject:LdtkLevels;
 	var levelContainer:FlxSpriteGroup;
 	var levelLoadedLevel:LdtkLevels.LdtkLevels_Level;
@@ -46,78 +54,103 @@ class GameLevel
 
 	public function update()
 	{
-		FlxG.overlap(levelContainer.group, gamePlayer, onPlayerOverlap);
+		// for debugging
+		// var tilesetIdUnderMouse = tilesetIdUnderPoint(FlxG.mouse.getPosition());
 
-		// debugging with mouse
-		// var mousePosition = FlxG.mouse.getPosition();
-		// trace(mousePosition.x / 16, mousePosition.y / 16, tileUnderPoint(mousePosition));
-
-		// var tileUnderPlayer = tileUnderPoint(gamePlayer.getMidpoint());
-		// var trackTile = 2;
-
-		// if (tileUnderPlayer == trackTile) {}
+		processPlayerTurn();
 	}
 
-	function onPlayerOverlap(map:FlxSprite, player:Player)
+	function processPlayerTurn()
 	{
-		// determine what tile we are overlapping with
-		var frameX = Math.floor(map.frame.frame.x);
-		var frameY = Math.floor(map.frame.frame.y);
-		var trackDirection = getTileTrackTurn(frameX, frameY, player);
-
-		trace(trackDirection, frameX, frameY);
-		trace(map.getGraphicMidpoint(), player.getGraphicMidpoint());
+		var trackDirection = getTileTrackTurn();
 
 		// if trackDirection is null, we aren't on a track, don't change anything
 		if (trackDirection == null)
+		{
+			trace("we aren't on a track");
 			return null;
+		}
 
 		// if trackDirection is something (but not turning), we can mark the player as not turning
 		var isOnTurningTile = trackDirection.indexOf("clockwise") > -1;
 		if (!isOnTurningTile)
 		{
-			player.finishTurning();
+			if (gamePlayer.playerIsTurning)
+			{
+				trace("we finished turning");
+				gamePlayer.finishTurning();
+			}
+
 			return null;
 		}
 
 		// if we are turning, tell the player they are turning, and that we have to finish
 		// before you can turn again (this will also prevent other actions like reversing)
-		if (!player.playerIsTurning)
+		if (!gamePlayer.playerIsTurning)
 		{
-			player.startTurning();
+			trace("we started turning");
+			gamePlayer.startTurning();
+			return null;
 		}
 
 		// if we are turning, (and haven't turned yet)
-		// wait until we are actually at the edge of the tile
-		if (player.playerIsTurning && !player.playerHasTurned)
+		// wait until we are at the center of the tile
+		if (gamePlayer.playerIsTurning && !gamePlayer.playerHasTurned)
 		{
+			trace("we are processing a turn");
+			var playerOffsetX = (gamePlayer.getHitbox().x + (gamePlayer.getHitbox().width / 2)) % TILE_SIZE;
+			var playerOffsetY = (gamePlayer.getHitbox().y + (gamePlayer.getHitbox().height / 2)) % TILE_SIZE;
+			trace(playerOffsetX, playerOffsetY);
+
 			// determine which direction we were going
 			// (to determine which midpoint we care about)
-			if (player.playerCartDirection == "horizontal")
+			var shouldRotatePlayer = false;
+			if (gamePlayer.playerCartDirection == "horizontal")
 			{
-				// if the player is moving horizontally, we need to wait until the midpoint x matches
-				var mapAndPlayerXDiff = map.getGraphicMidpoint().x - player.getMidpoint().x;
-				var mapAndPlayerXIsClose = Math.abs(mapAndPlayerXDiff) < 0.35;
-				if (mapAndPlayerXIsClose)
+				// if the player is moving horizontally, we need to wait until our x matches the frame x
+				// the limit for this is based on which direction we are going (rotation wise)
+				if (gamePlayer.playerCartOrientation == 0)
 				{
+					// we're going right, check if our offset from the midpoint x is greater than the tile x
+					shouldRotatePlayer = playerOffsetX >= (TILE_SIZE / 2);
+				}
+				else if (gamePlayer.playerCartOrientation == 180)
+				{
+					// we're going left, check if our offset from the midpoint x is less than the tile x
+					shouldRotatePlayer = playerOffsetX <= (TILE_SIZE / 2);
+				}
+				if (shouldRotatePlayer)
+				{
+					trace("we are making the turn");
 					// rotate the player, and snap them to the midpoint (so that we don't get off track)
 					gamePlayer.rotatePlayer(trackDirection);
-					player.x = player.x - (mapAndPlayerXDiff);
-					player.turn();
+					gamePlayer.x = Math.round(gamePlayer.x / (TILE_SIZE / 2)) * (TILE_SIZE / 2);
+					gamePlayer.turn();
 				}
 			}
-			else if (player.playerCartDirection == "vertical")
+			else if (gamePlayer.playerCartDirection == "vertical")
 			{
-				// if the player is moving vertically, we need to wait until the midpoint y matches
-				var mapAndPlayerYDiff = map.getGraphicMidpoint().y - player.getMidpoint().y;
-
-				var mapAndPlayerYIsClose = Math.abs(mapAndPlayerYDiff) < 0.35;
-				if (mapAndPlayerYIsClose)
+				// if the player is moving vertically, we need to wait until our y matches the frame y
+				// the limit for this is based on which direction we are going (rotation wise)
+				if (gamePlayer.playerCartOrientation == 270)
 				{
+					// we're going up, check if our offset from the midpoint y is less than the tile y
+					trace('moving up');
+					shouldRotatePlayer = playerOffsetY <= (TILE_SIZE / 2);
+				}
+				else if (gamePlayer.playerCartOrientation == 90)
+				{
+					// we're going down, check if our offset from the midpoint y is greater than the tile y
+					trace('moving down');
+					shouldRotatePlayer = playerOffsetY >= (TILE_SIZE / 2);
+				}
+				if (shouldRotatePlayer)
+				{
+					trace("we are making the turn");
 					// rotate the player, and snap them to the midpoint (so that we don't get off track)
 					gamePlayer.rotatePlayer(trackDirection);
-					player.y = player.y - (mapAndPlayerYDiff);
-					player.turn();
+					gamePlayer.y = Math.round(gamePlayer.y / (TILE_SIZE / 2)) * (TILE_SIZE / 2);
+					gamePlayer.turn();
 				}
 			}
 		}
@@ -126,51 +159,45 @@ class GameLevel
 	}
 
 	// returns "horizontal", "vertical", "turning", or null
-	// this is based on cart_and_map_cropped.png, and if that changes, this will break
-	function getTileTrackTurn(frameX:Int, frameY:Int, player:Player)
+	function getTileTrackTurn()
 	{
-		// make map based on the positions
-		var tileMap = [
-			"0x0" => "flat wall", "0x16" => "flat wall", "0x32" => "door", "0x48" => "door", "0x64" => "corner wall", "0x80" => "corner wall",
-			"16x0" => "flat wall", "16x16" => "flat wall", "16x32" => "door", "16x48" => "door", "16x64" => "corner wall", "16x80" => "corner wall",
-			"32x0" => "wall", "32x16" => "ground", "32x32" => "stop", "32x48" => "switch", "32x64" => "turn", "32x80" => "turn", "48x0" => "crease",
-			"48x16" => "crease", "48x32" => "crease", "48x48" => "crease", "48x64" => "turn", "48x80" => "turn", "64x0" => "track", "64x16" => "track",
-		];
+		var tilesetIdUnderPlayer = tilesetIdUnderPoint(gamePlayer.getMidpoint());
+		if (tilesetIdUnderPlayer == null)
+			return null;
 
-		trace(tileMap.get(frameY + "x" + frameX));
-
+		var tileUnderPlayer = TILESET_CART_AND_MAP[tilesetIdUnderPlayer];
 		// horizontal and vertical tracks
 		// these can probably be ignored, we really only need to care about turning
-		if (frameX == 16 && frameY == 64)
+		if (tileUnderPlayer == "track-horizontal")
 			return "horizontal";
-		if (frameX == 0 && frameY == 64)
+		if (tileUnderPlayer == "track-vertical")
 			return "vertical";
 
 		// turns, which we should turn halfway through
-		if (frameX >= 64 && frameY >= 32)
+		if (tileUnderPlayer.indexOf("track-turn") > -1)
 		{
 			// for these we actually need to read the player's current direction
 			// this way we can determine which direction they are turning
-			if (frameX == 64 && frameY == 32)
-				if (player.playerCartDirection == "horizontal")
+			if (tileUnderPlayer == "track-turn-north-west")
+				if (gamePlayer.playerCartDirection == "horizontal")
 					return "counterclockwise";
 				else
 					return "clockwise";
 
-			if (frameX == 64 && frameY == 48)
-				if (player.playerCartDirection == "horizontal")
+			if (tileUnderPlayer == "track-turn-north-east")
+				if (gamePlayer.playerCartDirection == "horizontal")
 					return "clockwise";
 				else
 					return "counterclockwise";
 
-			if (frameX == 80 && frameY == 32)
-				if (player.playerCartDirection == "horizontal")
+			if (tileUnderPlayer == "track-turn-south-west")
+				if (gamePlayer.playerCartDirection == "horizontal")
 					return "clockwise";
 				else
 					return "counterclockwise";
 
-			if (frameX == 80 && frameY == 48)
-				if (player.playerCartDirection == "horizontal")
+			if (tileUnderPlayer == "track-turn-south-east")
+				if (gamePlayer.playerCartDirection == "horizontal")
 					return "counterclockwise";
 				else
 					return "clockwise";
@@ -180,15 +207,38 @@ class GameLevel
 	}
 
 	// get the tile under a point
+	// this is based on the map data that is loaded from LDtk
 	// DEBUGGING NOTE: you can call this with FlxG.mouse.getPosition to hover and get the tile
-	function tileUnderPoint(pointOverTile:FlxPoint)
+	function tilesetIdUnderPoint(pointOverTile:FlxPoint)
 	{
-		var pixelSize = 16; // this could probably be determined from the tile map...
+		// get the x and y - the "getInt" uses grid indexes, not pixels, so we have to divide by tile size
+		var x = Math.floor((pointOverTile.x) / TILE_SIZE) * TILE_SIZE;
+		var y = Math.floor((pointOverTile.y) / TILE_SIZE) * TILE_SIZE;
 
-		// get the x and y - the "getInt" uses grid indexes, not pixels, so we have to divide by pixelSize
-		var x = Math.floor((pointOverTile.x) / pixelSize);
-		var y = Math.floor((pointOverTile.y) / pixelSize);
+		var tilesAtPoint = levelLoadedLevel.l_Map.autoTiles.filter(tileIsAtLocation(x, y));
+		if (tilesAtPoint.length > 0)
+		{
+			return tilesAtPoint[0].tileId;
+		}
 
-		// return levelLoadedLevel.l_Map.autoTiles[];
+		return null;
 	}
+
+	// helper function that returns a function to
+	// check if the tile is at this x-y coordinate
+	function tileIsAtLocation(x:Int, y:Int)
+	{
+		return function withTile(tile:AutoTile)
+		{
+			return tile.renderX == x && tile.renderY == y;
+		}
+	}
+
+	// helper function to determine how far the sprite is from the corner of the tile
+	function getSpriteOffsetFromTileCorner(sprite:FlxSprite)
+	{
+		return ["x" => sprite.x % TILE_SIZE, "y" => sprite.y % TILE_SIZE];
+	}
+
+	function snapSpriteToTileCorner(sprite:FlxSprite) {}
 }
