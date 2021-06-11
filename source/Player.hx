@@ -4,10 +4,14 @@ import flixel.FlxG;
 import flixel.FlxObject;
 import flixel.FlxSprite;
 import flixel.math.FlxPoint;
+import flixel.tweens.FlxEase;
+import flixel.tweens.FlxTween;
+import flixel.util.FlxColor;
 
 class Player extends FlxSprite
 {
 	static inline var SPEED:Float = 50;
+	static inline var ACCELERATION:Float = 1.8;
 	static inline var MAX_SPEED:Float = 150;
 	static inline var INITIAL_DRAG:Float = 1600;
 
@@ -17,6 +21,7 @@ class Player extends FlxSprite
 	public var playerHasTurned:Bool = false;
 	public var playerCurrentTurningTile:Int = -1;
 	public var uninterruptedElapsed:Float = 0;
+	public var hitMaxSpeed:Bool = false;
 
 	// while not required, we're saving all of these so we can verify
 	// later (before failing to load it) if we have the animation key
@@ -179,13 +184,34 @@ class Player extends FlxSprite
 		trace(uninterruptedElapsed);
 
 		// determine the new speed
-		var newSpeed:Float = Math.min(SPEED + Math.pow(uninterruptedElapsed, 2), MAX_SPEED);
+		var newSpeed:Float = Math.min(SPEED + Math.pow(uninterruptedElapsed, ACCELERATION), MAX_SPEED);
+
+		if (newSpeed == MAX_SPEED && hitMaxSpeed == false)
+		{
+			// glow a color
+			hitMaxSpeed = true;
+			FlxTween.tween(this, {color: FlxColor.WHITE}, 0.5, {onComplete: brighten, type: ONESHOT});
+			FlxTween.color(this, 0.3, FlxColor.fromRGB(200, 200, 200), FlxColor.fromRGB(255, 255, 255), {ease: FlxEase.sineInOut, type: PINGPONG});
+		}
 
 		// set the velocity
 		velocity.set(newSpeed, 0);
 
 		// point the velocity in the direction of the cart
 		velocity.rotate(FlxPoint.weak(0, 0), playerCartOrientation);
+	}
+
+	function brighten(_)
+	{
+		setColorTransform(1, 1, 1, 1, 20, 20, 20, 0);
+	}
+
+	function interruptSpeed()
+	{
+		uninterruptedElapsed = 0;
+		hitMaxSpeed = false;
+		setColorTransform(1, 1, 1, 1, 0, 0, 0, 0);
+		FlxTween.cancelTweensOf(this);
 	}
 
 	// helper function for testing facing directions
