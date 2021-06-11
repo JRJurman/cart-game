@@ -3,6 +3,7 @@ package;
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.FlxState;
+import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.group.FlxSpriteGroup;
 import flixel.math.FlxPoint;
 import ldtk.Layer_AutoLayer.AutoTile;
@@ -21,6 +22,7 @@ class GameLevel
 	var levelLoadedLevel:LdtkLevels.LdtkLevels_Level;
 	var gameState:FlxState;
 	var gamePlayer:Player;
+	var targets:FlxTypedGroup<Target>;
 
 	public function new(state:FlxState, player:Player)
 	{
@@ -28,6 +30,7 @@ class GameLevel
 		levelContainer = new FlxSpriteGroup();
 		gameState = state;
 		gamePlayer = player;
+		targets = new FlxTypedGroup<Target>();
 	}
 
 	// https://github.com/deepnight/ldtk-haxe-api/blob/31ff2a75953e7f4ac93408d46cffe90de11313f4/samples/Flixel%20-%20Render%20tile%20layer/src/PlayState.hx
@@ -35,6 +38,7 @@ class GameLevel
 	{
 		gameState.add(levelContainer);
 		gameState.add(gamePlayer);
+		gameState.add(targets);
 
 		var levels = ldtkProject.all_levels;
 		levelLoadedLevel = levels.Test_Level;
@@ -50,8 +54,11 @@ class GameLevel
 		// process switches
 		for (gameSwitch in levelLoadedLevel.l_Entities.all_Switch) {}
 		// process targets
-		for (target in levelLoadedLevel.l_Entities.all_Target) {
-
+		for (target in levelLoadedLevel.l_Entities.all_Target)
+		{
+			var newTarget = new Target(target.pixelX, target.pixelY);
+			snapSpriteToTile(newTarget, TILE_SIZE);
+			targets.add(newTarget);
 		}
 	}
 
@@ -257,7 +264,7 @@ class GameLevel
 		return shouldRotatePlayer;
 	}
 
-	function snapSpriteToTile(sprite:Player, tileSize:Int)
+	function snapSpriteToTile(sprite:FlxSprite, tileSize:Int)
 	{
 		sprite.x = Math.round(sprite.x / (tileSize / 2)) * (tileSize / 2);
 		sprite.y = Math.round(sprite.y / (tileSize / 2)) * (tileSize / 2);

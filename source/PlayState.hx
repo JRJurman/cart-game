@@ -1,5 +1,6 @@
 package;
 
+import flixel.FlxG;
 import flixel.FlxState;
 
 class PlayState extends FlxState
@@ -10,6 +11,8 @@ class PlayState extends FlxState
 	override public function create()
 	{
 		player = new Player(20, 20);
+
+		FlxG.camera.follow(player, TOPDOWN, 1);
 
 		level = new GameLevel(this, player);
 		level.loadLevel();

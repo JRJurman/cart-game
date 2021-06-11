@@ -7,7 +7,8 @@ import flixel.math.FlxPoint;
 
 class Player extends FlxSprite
 {
-	static inline var SPEED:Float = 30;
+	static inline var SPEED:Float = 50;
+	static inline var MAX_SPEED:Float = 150;
 	static inline var INITIAL_DRAG:Float = 1600;
 
 	public var playerShootingDirection:String = "right";
@@ -15,6 +16,7 @@ class Player extends FlxSprite
 	public var playerIsTurning:Bool = false;
 	public var playerHasTurned:Bool = false;
 	public var playerCurrentTurningTile:Int = -1;
+	public var uninterruptedElapsed:Float = 0;
 
 	// while not required, we're saving all of these so we can verify
 	// later (before failing to load it) if we have the animation key
@@ -41,7 +43,7 @@ class Player extends FlxSprite
 
 	override function update(elapsed:Float)
 	{
-		updateAcceleration(); // call our Acceleration helper function
+		updateAcceleration(elapsed); // call our Acceleration helper function
 		updatePlayerDirection(); // call our function for direction pointing
 		updatePlayerAnimation(); // call our function to update the animation based on player props
 
@@ -170,18 +172,19 @@ class Player extends FlxSprite
 	}
 
 	// helper function for Acceleration
-	function updateAcceleration()
+	function updateAcceleration(elapsed:Float)
 	{
-		var accelerating:Bool = false;
-
-		accelerating = FlxG.keys.anyPressed([SPACE]);
+		// add the elapsed time to uninterrupted elapsed
+		uninterruptedElapsed += elapsed;
+		trace(uninterruptedElapsed);
 
 		// determine the new speed
-		var newSpeed:Float = if (accelerating) SPEED * 2 else SPEED;
+		var newSpeed:Float = Math.min(SPEED + Math.pow(uninterruptedElapsed, 2), MAX_SPEED);
 
 		// set the velocity
 		velocity.set(newSpeed, 0);
 
+		// point the velocity in the direction of the cart
 		velocity.rotate(FlxPoint.weak(0, 0), playerCartOrientation);
 	}
 
@@ -189,7 +192,6 @@ class Player extends FlxSprite
 	function updatePlayerAnimation()
 	{
 		var animationKey = cartDirection() + "_cart_facing_" + playerShootingDirection;
-		trace(animationKey);
 		if (possibleAnimationKeys.contains(animationKey))
 		{
 			animation.play(animationKey);
