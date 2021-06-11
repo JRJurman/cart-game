@@ -11,7 +11,6 @@ class Player extends FlxSprite
 	static inline var SPEED:Float = 30;
 	static inline var INITIAL_DRAG:Float = 1600;
 
-	public var playerCartDirection:String = "horizontal";
 	public var playerShootingDirection:String = "right";
 	public var playerCartOrientation:Int = 0;
 	public var playerIsTurning:Bool = false;
@@ -57,9 +56,13 @@ class Player extends FlxSprite
 		super.update(elapsed);
 	}
 
-	public function setCartDirection(newCartDirection:String)
+	public function cartDirection()
 	{
-		playerCartDirection = newCartDirection;
+		if ((playerCartOrientation % 180) == 0)
+		{
+			return "horizontal";
+		}
+		return "vertical";
 	}
 
 	// function to mark the player as turning
@@ -80,11 +83,6 @@ class Player extends FlxSprite
 			playerCartOrientation = (playerCartOrientation + 90) % 360;
 		else if (rotation == "counterclockwise")
 			playerCartOrientation = ((playerCartOrientation - 90) + 360) % 360;
-
-		if (playerCartDirection == "vertical")
-			playerCartDirection = "horizontal";
-		else
-			playerCartDirection = "vertical";
 	}
 
 	public function finishTurning()
@@ -188,7 +186,7 @@ class Player extends FlxSprite
 	// helper function for testing facing directions
 	function updatePlayerAnimation()
 	{
-		var animationKey = playerCartDirection + "_cart_facing_" + playerShootingDirection;
+		var animationKey = cartDirection() + "_cart_facing_" + playerShootingDirection;
 		if (possibleAnimationKeys.contains(animationKey))
 		{
 			animation.play(animationKey);
