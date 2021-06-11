@@ -45,11 +45,14 @@ class GameLevel
 		for (player in levelLoadedLevel.l_Entities.all_Player)
 		{
 			gamePlayer.setPosition(player.pixelX, player.pixelY);
+			snapSpriteToTile(gamePlayer, TILE_SIZE);
 		}
 		// process switches
 		for (gameSwitch in levelLoadedLevel.l_Entities.all_Switch) {}
 		// process targets
-		for (target in levelLoadedLevel.l_Entities.all_Target) {}
+		for (target in levelLoadedLevel.l_Entities.all_Target) {
+
+		}
 	}
 
 	public function update()
@@ -115,7 +118,7 @@ class GameLevel
 			{
 				// rotate the player, and snap them to the midpoint (so that we don't get off track)
 				gamePlayer.turn(trackDirection);
-				snapPlayerToTile(gamePlayer, TILE_SIZE);
+				snapSpriteToTile(gamePlayer, TILE_SIZE);
 			}
 		}
 
@@ -254,9 +257,9 @@ class GameLevel
 		return shouldRotatePlayer;
 	}
 
-	function snapPlayerToTile(player:Player, tileSize:Int)
+	function snapSpriteToTile(sprite:Player, tileSize:Int)
 	{
-		gamePlayer.x = Math.round(gamePlayer.x / (tileSize / 2)) * (tileSize / 2);
-		gamePlayer.y = Math.round(gamePlayer.y / (tileSize / 2)) * (tileSize / 2);
+		sprite.x = Math.round(sprite.x / (tileSize / 2)) * (tileSize / 2);
+		sprite.y = Math.round(sprite.y / (tileSize / 2)) * (tileSize / 2);
 	}
 }

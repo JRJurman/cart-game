@@ -4,7 +4,6 @@ import flixel.FlxG;
 import flixel.FlxObject;
 import flixel.FlxSprite;
 import flixel.math.FlxPoint;
-import flixel.util.FlxColor;
 
 class Player extends FlxSprite
 {
@@ -93,7 +92,9 @@ class Player extends FlxSprite
 
 	function updatePlayerDirection()
 	{
-		playerShootingDirection = null;
+		var previousShootingDirection = playerShootingDirection;
+		// default to empty string
+		playerShootingDirection = "";
 
 		// check which keys are pressed (up or down)
 		if (FlxG.keys.anyPressed([UP, W]))
@@ -107,8 +108,9 @@ class Player extends FlxSprite
 		else if (FlxG.keys.anyPressed([RIGHT, D]))
 			playerShootingDirection += "right";
 
-		// if the shooting direction is still null, set it to right
-		playerShootingDirection = "right";
+		// if it's still empty string, use whatever we had before
+		if (playerShootingDirection == "")
+			playerShootingDirection = previousShootingDirection;
 	}
 
 	// helper function to add all the animations that are possible with the sprite sheet
@@ -187,6 +189,7 @@ class Player extends FlxSprite
 	function updatePlayerAnimation()
 	{
 		var animationKey = cartDirection() + "_cart_facing_" + playerShootingDirection;
+		trace(animationKey);
 		if (possibleAnimationKeys.contains(animationKey))
 		{
 			animation.play(animationKey);
