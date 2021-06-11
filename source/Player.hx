@@ -16,6 +16,7 @@ class Player extends FlxSprite
 	public var playerCartOrientation:Int = 0;
 	public var playerIsTurning:Bool = false;
 	public var playerHasTurned:Bool = false;
+	public var playerCurrentTurningTile:Int = -1;
 
 	// while not required, we're saving all of these so we can verify
 	// later (before failing to load it) if we have the animation key
@@ -35,7 +36,7 @@ class Player extends FlxSprite
 
 		drag.x = drag.y = INITIAL_DRAG;
 
-		// set the character sprite to just be the cart
+		// set the character sprite so the cart aligns with the track
 		setSize(16, 16);
 		offset.set(0, 26 - 16);
 	}
@@ -63,35 +64,33 @@ class Player extends FlxSprite
 
 	// function to mark the player as turning
 	// they shouldn't be able to do other actions here
-	public function startTurning()
+	public function startTurning(tileId:Int)
 	{
 		playerIsTurning = true;
 		playerHasTurned = false;
+		playerCurrentTurningTile = tileId;
 	}
 
-	public function turn()
+	public function turn(rotation:String)
 	{
 		playerIsTurning = true;
 		playerHasTurned = true;
+
+		if (rotation == "clockwise")
+			playerCartOrientation = (playerCartOrientation + 90) % 360;
+		else if (rotation == "counterclockwise")
+			playerCartOrientation = ((playerCartOrientation - 90) + 360) % 360;
+
+		if (playerCartDirection == "vertical")
+			playerCartDirection = "horizontal";
+		else
+			playerCartDirection = "vertical";
 	}
 
 	public function finishTurning()
 	{
 		playerIsTurning = false;
 		playerHasTurned = false;
-	}
-
-	public function rotatePlayer(rotation:String)
-	{
-		if (rotation == "clockwise")
-			playerCartOrientation = (playerCartOrientation + 90) % 360;
-		else if (rotation == "counterclockwise")
-			playerCartOrientation = (playerCartOrientation - 90) % 360;
-
-		if (playerCartDirection == "vertical")
-			playerCartDirection = "horizontal";
-		else
-			playerCartDirection = "vertical";
 	}
 
 	function updatePlayerDirection()

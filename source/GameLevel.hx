@@ -62,34 +62,37 @@ class GameLevel
 
 	function processPlayerTurn()
 	{
-		var trackDirection = getTileTrackTurn();
+		var tilesetIdUnderPlayer = tilesetIdUnderPoint(gamePlayer.getMidpoint());
+		if (tilesetIdUnderPlayer == null)
+			return null;
+
+		var trackDirection = getTileTrackTurn(tilesetIdUnderPlayer);
 
 		// if trackDirection is null, we aren't on a track, don't change anything
 		if (trackDirection == null)
 		{
-			trace("we aren't on a track");
 			return null;
 		}
 
-		// if trackDirection is something (but not turning), we can mark the player as not turning
-		var isOnTurningTile = trackDirection.indexOf("clockwise") > -1;
-		if (!isOnTurningTile)
+		var isOnTurningTrack = trackDirection.indexOf("clockwise") > -1;
+
+		// if we are on a new tile, and we were turning, we must have finished turning
+		var isOnNewTile = gamePlayer.playerCurrentTurningTile != tilesetIdUnderPlayer;
+		if (gamePlayer.playerIsTurning && isOnNewTile)
 		{
-			if (gamePlayer.playerIsTurning)
-			{
-				trace("we finished turning");
-				gamePlayer.finishTurning();
-			}
-
+			gamePlayer.finishTurning();
 			return null;
 		}
+
+		// if we aren't turning, just end the function
+		if (!isOnTurningTrack)
+			return null;
 
 		// if we are turning, tell the player they are turning, and that we have to finish
 		// before you can turn again (this will also prevent other actions like reversing)
 		if (!gamePlayer.playerIsTurning)
 		{
-			trace("we started turning");
-			gamePlayer.startTurning();
+			gamePlayer.startTurning(tilesetIdUnderPlayer);
 			return null;
 		}
 
@@ -97,10 +100,10 @@ class GameLevel
 		// wait until we are at the center of the tile
 		if (gamePlayer.playerIsTurning && !gamePlayer.playerHasTurned)
 		{
-			trace("we are processing a turn");
 			var playerOffsetX = (gamePlayer.getHitbox().x + (gamePlayer.getHitbox().width / 2)) % TILE_SIZE;
 			var playerOffsetY = (gamePlayer.getHitbox().y + (gamePlayer.getHitbox().height / 2)) % TILE_SIZE;
 			trace(playerOffsetX, playerOffsetY);
+			trace(gamePlayer.playerCartDirection, gamePlayer.playerCartOrientation);
 
 			// determine which direction we were going
 			// (to determine which midpoint we care about)
@@ -121,11 +124,9 @@ class GameLevel
 				}
 				if (shouldRotatePlayer)
 				{
-					trace("we are making the turn");
 					// rotate the player, and snap them to the midpoint (so that we don't get off track)
-					gamePlayer.rotatePlayer(trackDirection);
 					gamePlayer.x = Math.round(gamePlayer.x / (TILE_SIZE / 2)) * (TILE_SIZE / 2);
-					gamePlayer.turn();
+					gamePlayer.turn(trackDirection);
 				}
 			}
 			else if (gamePlayer.playerCartDirection == "vertical")
@@ -135,22 +136,18 @@ class GameLevel
 				if (gamePlayer.playerCartOrientation == 270)
 				{
 					// we're going up, check if our offset from the midpoint y is less than the tile y
-					trace('moving up');
 					shouldRotatePlayer = playerOffsetY <= (TILE_SIZE / 2);
 				}
 				else if (gamePlayer.playerCartOrientation == 90)
 				{
 					// we're going down, check if our offset from the midpoint y is greater than the tile y
-					trace('moving down');
 					shouldRotatePlayer = playerOffsetY >= (TILE_SIZE / 2);
 				}
 				if (shouldRotatePlayer)
 				{
-					trace("we are making the turn");
 					// rotate the player, and snap them to the midpoint (so that we don't get off track)
-					gamePlayer.rotatePlayer(trackDirection);
 					gamePlayer.y = Math.round(gamePlayer.y / (TILE_SIZE / 2)) * (TILE_SIZE / 2);
-					gamePlayer.turn();
+					gamePlayer.turn(trackDirection);
 				}
 			}
 		}
@@ -159,12 +156,8 @@ class GameLevel
 	}
 
 	// returns "horizontal", "vertical", "turning", or null
-	function getTileTrackTurn()
+	function getTileTrackTurn(tilesetIdUnderPlayer:Int)
 	{
-		var tilesetIdUnderPlayer = tilesetIdUnderPoint(gamePlayer.getMidpoint());
-		if (tilesetIdUnderPlayer == null)
-			return null;
-
 		var tileUnderPlayer = TILESET_CART_AND_MAP[tilesetIdUnderPlayer];
 		// horizontal and vertical tracks
 		// these can probably be ignored, we really only need to care about turning
