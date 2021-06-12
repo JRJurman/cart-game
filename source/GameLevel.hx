@@ -6,7 +6,6 @@ import flixel.FlxState;
 import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.group.FlxSpriteGroup;
 import flixel.math.FlxPoint;
-import js.html.Console;
 import ldtk.Layer_AutoLayer.AutoTile;
 
 class GameLevel
@@ -47,26 +46,27 @@ class GameLevel
 	}
 
 	// https://github.com/deepnight/ldtk-haxe-api/blob/31ff2a75953e7f4ac93408d46cffe90de11313f4/samples/Flixel%20-%20Render%20tile%20layer/src/PlayState.hx
-	public function loadLevel(?levelId:LdtkLevels.LdtkLevels_Level)
+	public function loadLevel(?isStart:Bool = false)
 	{
 		gameState.add(levelContainer);
 		gameState.add(gamePlayer);
 		gameState.add(targets);
 
-		levelLoadedLevel = levelId;
-		if (levelId == null)
-		{
-			levelLoadedLevel = levelsMap[levelPosY][levelPosX];
-		}
+		levelLoadedLevel = levelsMap[levelPosY][levelPosX];
 
 		// render the tiles on the game
 		levelLoadedLevel.l_Map.render(levelContainer);
 
-		for (player in levelLoadedLevel.l_Entities.all_Player)
+		// load player object
+		if (isStart)
 		{
-			gamePlayer.setPosition(player.pixelX, player.pixelY);
-			snapSpriteToTile(gamePlayer, TILE_SIZE);
+			for (player in levelLoadedLevel.l_Entities.all_Player)
+			{
+				gamePlayer.setPosition(player.pixelX, player.pixelY);
+				snapSpriteToTile(gamePlayer, TILE_SIZE);
+			}
 		}
+
 		// process switches
 		for (gameSwitch in levelLoadedLevel.l_Entities.all_Switch) {}
 		// process targets
@@ -152,7 +152,6 @@ class GameLevel
 	function processOpenDoor()
 	{
 		var tilesetIdUnderPlayer = tilesetIdUnderPoint(gamePlayer.getMidpoint());
-		trace(tilesetIdUnderPlayer);
 		// door on right
 		if (tilesetIdUnderPlayer == 8)
 		{
@@ -180,7 +179,7 @@ class GameLevel
 		// door on left
 		if (tilesetIdUnderPlayer == 2)
 		{
-			levelPosY = levelPosX - 1;
+			levelPosX = levelPosX - 1;
 			loadLevel();
 			resetPlayerPositionOnNewMap();
 			return null;
@@ -194,25 +193,15 @@ class GameLevel
 		var newY:Float;
 		var playerX = gamePlayer.getPosition().x;
 		var playerY = gamePlayer.getPosition().y;
-		if (playerX > 232)
+		newX = ((playerX) % 220);
+		newY = ((playerY) % 220);
+		if (playerX < 16)
 		{
-			// off to the right side of the screen
-			newX = 16;
+			newX = 220;
 		}
-		if (playerX < 20)
+		if (playerY < 16)
 		{
-			// off to the left side of the screen
-			newX = 230;
-		}
-		if (playerY > 232)
-		{
-			// off to the bottom side of the screen
-			newY = 16;
-		}
-		if (playerY < 20)
-		{
-			// off to the top side of the screen
-			newY = 230;
+			newY = 220;
 		}
 		gamePlayer.setPosition(newX, newY);
 		return null;
