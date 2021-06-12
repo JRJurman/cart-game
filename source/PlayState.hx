@@ -15,7 +15,7 @@ class PlayState extends FlxState
 		FlxG.camera.follow(player, TOPDOWN, 1);
 
 		level = new GameLevel(this, player);
-		level.loadLevel();
+		level.loadLevel(true);
 
 		super.create();
 	}

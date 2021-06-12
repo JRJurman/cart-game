@@ -199,7 +199,6 @@ class Player extends FlxSprite
 
 		// add the elapsed time to uninterrupted elapsed
 		uninterruptedElapsed += elapsed;
-		trace(uninterruptedElapsed);
 
 		// determine the new speed
 		var newSpeed:Float = Math.min(SPEED + Math.pow(uninterruptedElapsed, ACCELERATION), MAX_SPEED);

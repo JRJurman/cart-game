@@ -23,6 +23,9 @@ class GameLevel
 	var gameState:FlxState;
 	var gamePlayer:Player;
 	var targets:FlxTypedGroup<Target>;
+	var levelsMap:Array<Array<LdtkLevels.LdtkLevels_Level>>;
+	var levelPosX:Int;
+	var levelPosY:Int;
 
 	public function new(state:FlxState, player:Player)
 	{
@@ -31,26 +34,39 @@ class GameLevel
 		gameState = state;
 		gamePlayer = player;
 		targets = new FlxTypedGroup<Target>();
+
+		var levels = ldtkProject.all_levels;
+		levelsMap = [
+			[levels.Ethans_test_1, levels.Ethans_test_2, levels.Ethans_test_3],
+			[levels.Ethans_test_6, levels.Ethans_test_5, levels.Ethans_test_4],
+			[levels.Ethans_test_7, levels.Ethans_test_8, levels.Ethans_test_9]
+		];
+		levelPosX = 0;
+		levelPosY = 0;
 	}
 
 	// https://github.com/deepnight/ldtk-haxe-api/blob/31ff2a75953e7f4ac93408d46cffe90de11313f4/samples/Flixel%20-%20Render%20tile%20layer/src/PlayState.hx
-	public function loadLevel()
+	public function loadLevel(?isStart:Bool = false)
 	{
 		gameState.add(levelContainer);
 		gameState.add(gamePlayer);
 		gameState.add(targets);
 
-		var levels = ldtkProject.all_levels;
-		levelLoadedLevel = levels.Test_Level;
+		levelLoadedLevel = levelsMap[levelPosY][levelPosX];
 
 		// render the tiles on the game
 		levelLoadedLevel.l_Map.render(levelContainer);
 
-		for (player in levelLoadedLevel.l_Entities.all_Player)
+		// load player object
+		if (isStart)
 		{
-			gamePlayer.setPosition(player.pixelX, player.pixelY);
-			snapSpriteToTile(gamePlayer, TILE_SIZE);
+			for (player in levelLoadedLevel.l_Entities.all_Player)
+			{
+				gamePlayer.setPosition(player.pixelX, player.pixelY);
+				snapSpriteToTile(gamePlayer, TILE_SIZE);
+			}
 		}
+
 		// process switches
 		for (gameSwitch in levelLoadedLevel.l_Entities.all_Switch) {}
 		// process targets
@@ -68,6 +84,7 @@ class GameLevel
 		// var tilesetIdUnderMouse = tilesetIdUnderPoint(FlxG.mouse.getPosition());
 
 		processPlayerTurn();
+		processOpenDoor();
 	}
 
 	/**
@@ -135,6 +152,64 @@ class GameLevel
 			}
 		}
 
+		return null;
+	}
+
+	function processOpenDoor()
+	{
+		var tilesetIdUnderPlayer = tilesetIdUnderPoint(gamePlayer.getMidpoint());
+		// door on right
+		if (tilesetIdUnderPlayer == 8)
+		{
+			levelPosX = levelPosX + 1;
+			loadLevel();
+			resetPlayerPositionOnNewMap();
+			return null;
+		}
+		// door on bottom
+		if (tilesetIdUnderPlayer == 3)
+		{
+			levelPosY = levelPosY + 1;
+			loadLevel();
+			resetPlayerPositionOnNewMap();
+			return null;
+		}
+		// door on top
+		if (tilesetIdUnderPlayer == 9)
+		{
+			levelPosY = levelPosY - 1;
+			loadLevel();
+			resetPlayerPositionOnNewMap();
+			return null;
+		}
+		// door on left
+		if (tilesetIdUnderPlayer == 2)
+		{
+			levelPosX = levelPosX - 1;
+			loadLevel();
+			resetPlayerPositionOnNewMap();
+			return null;
+		}
+		return null;
+	}
+
+	function resetPlayerPositionOnNewMap()
+	{
+		var newX:Float;
+		var newY:Float;
+		var playerX = gamePlayer.getPosition().x;
+		var playerY = gamePlayer.getPosition().y;
+		newX = ((playerX) % 220);
+		newY = ((playerY) % 220);
+		if (playerX < 16)
+		{
+			newX = 220;
+		}
+		if (playerY < 16)
+		{
+			newY = 220;
+		}
+		gamePlayer.setPosition(newX, newY);
 		return null;
 	}
 
