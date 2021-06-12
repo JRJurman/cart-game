@@ -110,6 +110,12 @@ class GameLevel
 		if (trackDirection == null)
 			return null;
 
+		if (trackDirection == "stop")
+		{
+			gamePlayer.stop();
+			return null;
+		}
+
 		// if we are on a new tile, and we were turning, we must have finished turning
 		var isOnNewTile = gamePlayer.playerCurrentTurningTile != tilesetIdUnderPlayer;
 		if (gamePlayer.playerIsTurning && isOnNewTile)
@@ -220,6 +226,9 @@ class GameLevel
 			return "horizontal";
 		if (tileUnderPlayer == "track-vertical")
 			return "vertical";
+
+		if (tileUnderPlayer == "track-stop")
+			return "stop";
 
 		// turns, which we should turn halfway through
 		if (tileUnderPlayer.indexOf("track-turn") > -1)
