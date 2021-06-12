@@ -22,6 +22,7 @@ class Player extends FlxSprite
 	public var playerCurrentTurningTile:Int = -1;
 	public var uninterruptedElapsed:Float = 0;
 	public var hitMaxSpeed:Bool = false;
+	public var playerHasStopped:Bool = false;
 
 	// while not required, we're saving all of these so we can verify
 	// later (before failing to load it) if we have the animation key
@@ -95,6 +96,17 @@ class Player extends FlxSprite
 	{
 		playerIsTurning = false;
 		playerHasTurned = false;
+	}
+
+	public function stop()
+	{
+		playerHasStopped = true;
+		uninterruptedElapsed = 0;
+	}
+
+	public function start()
+	{
+		playerHasStopped = false;
 	}
 
 	function updatePlayerDirection()
@@ -179,6 +191,12 @@ class Player extends FlxSprite
 	// helper function for Acceleration
 	function updateAcceleration(elapsed:Float)
 	{
+		if (playerHasStopped)
+		{
+			velocity.set(0, 0);
+			return;
+		}
+
 		// add the elapsed time to uninterrupted elapsed
 		uninterruptedElapsed += elapsed;
 		trace(uninterruptedElapsed);
