@@ -1,90 +1,108 @@
 package;
 
-import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.FlxState;
 import flixel.group.FlxGroup.FlxTypedGroup;
 import flixel.group.FlxSpriteGroup;
 import flixel.math.FlxPoint;
-import ldtk.Layer_AutoLayer.AutoTile;
 
 class GameLevel
 {
 	static var TILESET_CART_AND_MAP:Array<String> = [
-		"wall", "wall", "door", "door", "wall", "wall", "wall", "wall", "door", "door", "wall", "wall", "wall", "ground", "track-stop", "switch",
-		"track-turn-north-west", "track-turn-north-east", "wall", "wall", "wall", "wall", "track-turn-south-west", "track-turn-south-east", "track-vertical",
-		"track-horizontal"
+		"wall", "wall", "door-left", "door-down", "wall", "wall", "wall", "wall", "door-right", "door-up", "wall", "wall", "wall", "ground", "track-stop",
+		"switch", "track-turn-north-west", "track-turn-north-east", "wall", "wall", "wall", "wall", "track-turn-south-west", "track-turn-south-east",
+		"track-vertical", "track-horizontal"
 	];
 	static var TILE_SIZE:Int = 16;
 
 	var ldtkProject:LdtkLevels;
-	var levelContainer:FlxSpriteGroup;
-	var levelLoadedLevel:LdtkLevels.LdtkLevels_Level;
 	var gameState:FlxState;
 	var gamePlayer:Player;
 	var targets:FlxTypedGroup<Target>;
-	var levelsMap:Array<Array<LdtkLevels.LdtkLevels_Level>>;
+	var levelsMap:Map<WorldCoord, LdtkLevels.LdtkLevels_Level>;
+	var levelContainers:FlxTypedGroup<flixel.group.FlxSpriteGroup>;
+	var worldAutoTiles:Array<AutoTileWithOffset>;
 	var levelPosX:Int;
 	var levelPosY:Int;
 
 	public function new(state:FlxState, player:Player)
 	{
 		ldtkProject = new LdtkLevels();
-		levelContainer = new FlxSpriteGroup();
 		gameState = state;
 		gamePlayer = player;
 		targets = new FlxTypedGroup<Target>();
+		levelContainers = new FlxTypedGroup<flixel.group.FlxSpriteGroup>();
+		worldAutoTiles = new Array<AutoTileWithOffset>();
 
 		var levels = ldtkProject.all_levels;
 		levelsMap = [
-			[levels.Ethans_test_1, levels.Ethans_test_2, levels.Ethans_test_3],
-			[levels.Ethans_test_6, levels.Ethans_test_5, levels.Ethans_test_4],
-			[levels.Ethans_test_7, levels.Ethans_test_8, levels.Ethans_test_9]
+			new WorldCoord(0, 0) => levels.Ethans_test_1,
+			new WorldCoord(256, 0) => levels.Ethans_test_2,
+			new WorldCoord(512, 0) => levels.Ethans_test_3,
+			new WorldCoord(0, 256) => levels.Ethans_test_6,
+			new WorldCoord(256, 256) => levels.Ethans_test_5,
+			new WorldCoord(512, 256) => levels.Ethans_test_4,
+			new WorldCoord(0, 512) => levels.Ethans_test_7,
+			new WorldCoord(256, 512) => levels.Ethans_test_8,
+			new WorldCoord(512, 512) => levels.Ethans_test_9,
 		];
 		levelPosX = 0;
 		levelPosY = 0;
 	}
 
 	// https://github.com/deepnight/ldtk-haxe-api/blob/31ff2a75953e7f4ac93408d46cffe90de11313f4/samples/Flixel%20-%20Render%20tile%20layer/src/PlayState.hx
-	public function loadLevel(?isStart:Bool = false)
+	public function loadLevels()
 	{
-		gameState.add(levelContainer);
+		gameState.add(levelContainers);
 		gameState.add(gamePlayer);
 		gameState.add(targets);
 
-		levelLoadedLevel = levelsMap[levelPosY][levelPosX];
-
-		// render the tiles on the game
-		levelLoadedLevel.l_Map.render(levelContainer);
-
-		// load player object
-		if (isStart)
+		for (coord => level in levelsMap)
 		{
-			for (player in levelLoadedLevel.l_Entities.all_Player)
+			trace(coord, level);
+
+			// create a new container to hold the level (we shouldn't need this later)
+			var levelContainer = new flixel.group.FlxSpriteGroup();
+			levelContainers.add(levelContainer);
+
+			// add all the autotiles (updating the x and y based on the world coords)
+			// these WILL be read to get what tile is under the player
+			worldAutoTiles = worldAutoTiles.concat(level.l_Map.autoTiles.map(AutoTileWithOffset.withOffset(coord)));
+
+			// set the x and y based on the coordinate
+			levelContainer.x = coord.x;
+			levelContainer.y = coord.y;
+
+			// render the tiles on the game
+			level.l_Map.render(levelContainer);
+
+			// load player object
+			for (player in level.l_Entities.all_Player)
 			{
-				gamePlayer.setPosition(player.pixelX, player.pixelY);
+				gamePlayer.setPosition(player.pixelX + coord.x, player.pixelY + coord.y);
 				snapSpriteToTile(gamePlayer, TILE_SIZE);
-			}
-		}
 
-		// process switches
-		for (gameSwitch in levelLoadedLevel.l_Entities.all_Switch) {}
-		// process targets
-		for (target in levelLoadedLevel.l_Entities.all_Target)
-		{
-			var newTarget = new Target(target.pixelX, target.pixelY);
-			snapSpriteToTile(newTarget, TILE_SIZE);
-			targets.add(newTarget);
+				// set the loaded level to the one with the player
+			}
+
+			// process switches
+			for (gameSwitch in level.l_Entities.all_Switch) {}
+			// process targets
+			for (target in level.l_Entities.all_Target)
+			{
+				var newTarget = new Target(target.pixelX + coord.x, target.pixelY + coord.y);
+				snapSpriteToTile(newTarget, TILE_SIZE);
+				targets.add(newTarget);
+			}
 		}
 	}
 
 	public function update()
 	{
 		// for debugging
-		// var tilesetIdUnderMouse = tilesetIdUnderPoint(FlxG.mouse.getPosition());
+		// var tilesetIdUnderMouse = getTilesetIdUnderPoint(FlxG.mouse.getPosition());
 
 		processPlayerTurn();
-		processOpenDoor();
 	}
 
 	/**
@@ -95,16 +113,10 @@ class GameLevel
 	function processPlayerTurn()
 	{
 		// get the tileset id (the type of tile), under the player
-		var tilesetIdUnderPlayer = tilesetIdUnderPoint(gamePlayer.getMidpoint());
-
-		// if we can't read what tile is under the player, chances are they've fallen off the map
-		// TODO handle this better, for now, they just won't turn
-		var isPlayerOverATile = tilesetIdUnderPlayer != null;
-		if (!isPlayerOverATile)
-			return null;
+		var tilesetIdUnderPlayer = getTilesetIdUnderPoint(gamePlayer.getMidpoint());
 
 		// determine what kind of turn or direction the tile might be
-		var trackDirection = getTileTrackTurn(tilesetIdUnderPlayer);
+		var trackDirection = getTileTrackDirection(tilesetIdUnderPlayer);
 
 		// if trackDirection is null, we aren't on a track, don't change anything
 		if (trackDirection == null)
@@ -112,7 +124,11 @@ class GameLevel
 
 		if (trackDirection == "stop")
 		{
-			gamePlayer.stop();
+			var shouldStop = isPastMidpoint(gamePlayer, gamePlayer.playerCartOrientation, TILE_SIZE);
+
+			if (shouldStop)
+				gamePlayer.stop();
+
 			return null;
 		}
 
@@ -155,105 +171,66 @@ class GameLevel
 		return null;
 	}
 
-	function processOpenDoor()
+	/**
+	 * returns which direction the door is facing
+	 * @param tilesetIdUnderPlayer
+	 */
+	function getTileNameFromId(tilesetIdUnderPoint:Int)
 	{
-		var tilesetIdUnderPlayer = tilesetIdUnderPoint(gamePlayer.getMidpoint());
-		// door on right
-		if (tilesetIdUnderPlayer == 8)
-		{
-			levelPosX = levelPosX + 1;
-			loadLevel();
-			resetPlayerPositionOnNewMap();
+		// if it is null, we probably fell off the map
+		if (tilesetIdUnderPoint == null)
 			return null;
-		}
-		// door on bottom
-		if (tilesetIdUnderPlayer == 3)
-		{
-			levelPosY = levelPosY + 1;
-			loadLevel();
-			resetPlayerPositionOnNewMap();
-			return null;
-		}
-		// door on top
-		if (tilesetIdUnderPlayer == 9)
-		{
-			levelPosY = levelPosY - 1;
-			loadLevel();
-			resetPlayerPositionOnNewMap();
-			return null;
-		}
-		// door on left
-		if (tilesetIdUnderPlayer == 2)
-		{
-			levelPosX = levelPosX - 1;
-			loadLevel();
-			resetPlayerPositionOnNewMap();
-			return null;
-		}
-		return null;
-	}
 
-	function resetPlayerPositionOnNewMap()
-	{
-		var newX:Float;
-		var newY:Float;
-		var playerX = gamePlayer.getPosition().x;
-		var playerY = gamePlayer.getPosition().y;
-		newX = ((playerX) % 220);
-		newY = ((playerY) % 220);
-		if (playerX < 16)
-		{
-			newX = 220;
-		}
-		if (playerY < 16)
-		{
-			newY = 220;
-		}
-		gamePlayer.setPosition(newX, newY);
-		return null;
+		var tileUnderPoint = TILESET_CART_AND_MAP[tilesetIdUnderPoint];
+		return tileUnderPoint;
 	}
 
 	/**
-	 * returns "horizontal", "vertical", "turning", or null
+	 * returns "horizontal", "vertical", "clockwise", "counterclockwise" or null
 	 * @param tilesetIdUnderPlayer
 	 */
-	function getTileTrackTurn(tilesetIdUnderPlayer:Int)
+	function getTileTrackDirection(tilesetIdUnderPoint:Int)
 	{
-		var tileUnderPlayer = TILESET_CART_AND_MAP[tilesetIdUnderPlayer];
+		var tileUnderPoint = getTileNameFromId(tilesetIdUnderPoint);
+
+		// if it is null, we probably fell off the map
+		if (tileUnderPoint == null)
+			return null;
+
 		// horizontal and vertical tracks
 		// these can probably be ignored, we really only need to care about turning
-		if (tileUnderPlayer == "track-horizontal")
+		if (tileUnderPoint == "track-horizontal")
 			return "horizontal";
-		if (tileUnderPlayer == "track-vertical")
+		if (tileUnderPoint == "track-vertical")
 			return "vertical";
 
-		if (tileUnderPlayer == "track-stop")
+		if (tileUnderPoint == "track-stop")
 			return "stop";
 
 		// turns, which we should turn halfway through
-		if (tileUnderPlayer.indexOf("track-turn") > -1)
+		if (tileUnderPoint.indexOf("track-turn") > -1)
 		{
 			// for these we actually need to read the player's current direction
 			// this way we can determine which direction they are turning
-			if (tileUnderPlayer == "track-turn-north-west")
+			if (tileUnderPoint == "track-turn-north-west")
 				if (gamePlayer.cartDirection() == "horizontal")
 					return "counterclockwise";
 				else
 					return "clockwise";
 
-			if (tileUnderPlayer == "track-turn-north-east")
+			if (tileUnderPoint == "track-turn-north-east")
 				if (gamePlayer.cartDirection() == "horizontal")
 					return "clockwise";
 				else
 					return "counterclockwise";
 
-			if (tileUnderPlayer == "track-turn-south-west")
+			if (tileUnderPoint == "track-turn-south-west")
 				if (gamePlayer.cartDirection() == "horizontal")
 					return "clockwise";
 				else
 					return "counterclockwise";
 
-			if (tileUnderPlayer == "track-turn-south-east")
+			if (tileUnderPoint == "track-turn-south-east")
 				if (gamePlayer.cartDirection() == "horizontal")
 					return "counterclockwise";
 				else
@@ -271,16 +248,16 @@ class GameLevel
 	 *
 	 * @param pointOverTile
 	 */
-	function tilesetIdUnderPoint(pointOverTile:FlxPoint)
+	function getTilesetIdUnderPoint(pointOverTile:FlxPoint)
 	{
 		// get the x and y - the "getInt" uses grid indexes, not pixels, so we have to divide by tile size
 		var x = Math.floor((pointOverTile.x) / TILE_SIZE) * TILE_SIZE;
 		var y = Math.floor((pointOverTile.y) / TILE_SIZE) * TILE_SIZE;
 
-		var tilesAtPoint = levelLoadedLevel.l_Map.autoTiles.filter(tileIsAtLocation(x, y));
+		var tilesAtPoint = worldAutoTiles.filter(tileIsAtLocation(x, y));
 		if (tilesAtPoint.length > 0)
 		{
-			return tilesAtPoint[0].tileId;
+			return tilesAtPoint[0].autoTile.tileId;
 		}
 
 		return null;
@@ -294,9 +271,9 @@ class GameLevel
 	 */
 	function tileIsAtLocation(x:Int, y:Int)
 	{
-		return function withTile(tile:AutoTile)
+		return function withTile(tile:AutoTileWithOffset)
 		{
-			return tile.renderX == x && tile.renderY == y;
+			return tile.getX() == x && tile.getY() == y;
 		}
 	}
 
