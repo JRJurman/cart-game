@@ -7,22 +7,26 @@ import flixel.math.FlxPoint;
 import flixel.tweens.FlxEase;
 import flixel.tweens.FlxTween;
 import flixel.util.FlxColor;
+import haxe.xml.Check;
 
 class Player extends FlxSprite
 {
-	static inline var SPEED:Float = 50;
-	static inline var ACCELERATION:Float = 1.8;
-	static inline var MAX_SPEED:Float = 150;
-	static inline var INITIAL_DRAG:Float = 1600;
+	static var SPEED:Float = 50;
+	static var ACCELERATION:Float = 1.8;
+	static var MAX_SPEED:Float = 150;
+	static var INITIAL_DRAG:Float = 1600;
+	static var DIM_FACTOR:Float = 0.8;
+	static var GLOW_FACTOR:Int = 2;
 
 	public var playerShootingDirection:String = "right";
 	public var playerCartOrientation:Int = 0;
 	public var playerIsTurning:Bool = false;
 	public var playerHasTurned:Bool = false;
-	public var playerCurrentTurningTile:Int = -1;
+	public var playerCurrentTile:Int = -1;
 	public var uninterruptedElapsed:Float = 0;
 	public var hitMaxSpeed:Bool = false;
 	public var playerHasStopped:Bool = false;
+	public var playerIsReversing = false;
 
 	// while not required, we're saving all of these so we can verify
 	// later (before failing to load it) if we have the animation key
@@ -52,6 +56,7 @@ class Player extends FlxSprite
 		updateAcceleration(elapsed); // call our Acceleration helper function
 		updatePlayerDirection(); // call our function for direction pointing
 		updatePlayerAnimation(); // call our function to update the animation based on player props
+		checkForReverse();
 
 		// cursor debugging
 		// var sprite = new FlxSprite();
@@ -78,7 +83,7 @@ class Player extends FlxSprite
 	{
 		playerIsTurning = true;
 		playerHasTurned = false;
-		playerCurrentTurningTile = tileId;
+		playerCurrentTile = tileId;
 	}
 
 	public function turn(rotation:String)
@@ -107,6 +112,24 @@ class Player extends FlxSprite
 	public function start()
 	{
 		playerHasStopped = false;
+	}
+
+	public function reverse()
+	{
+		uninterruptedElapsed = 0;
+		playerCartOrientation = (playerCartOrientation + 180) % 360;
+	}
+
+	public function checkForReverse()
+	{
+		// make sure we are not turning
+		if (playerIsTurning)
+			return;
+
+		if (FlxG.keys.anyJustPressed([K]))
+		{
+			reverse();
+		}
 	}
 
 	function updatePlayerDirection()
@@ -205,10 +228,13 @@ class Player extends FlxSprite
 
 		if (newSpeed == MAX_SPEED && hitMaxSpeed == false)
 		{
-			// glow a color
+			// we've hit max speed!
 			hitMaxSpeed = true;
+
+			// in 0.5 seconds, set the sprite to brighten
 			FlxTween.tween(this, {color: FlxColor.WHITE}, 0.5, {onComplete: brighten, type: ONESHOT});
-			FlxTween.color(this, 0.3, FlxColor.fromRGB(200, 200, 200), FlxColor.fromRGB(255, 255, 255), {ease: FlxEase.sineInOut, type: PINGPONG});
+			// in 0.3 seconds, start a loop from dark to light
+			FlxTween.color(this, 0.3, FlxColor.WHITE.getDarkened(DIM_FACTOR), FlxColor.WHITE, {ease: FlxEase.sineInOut, type: PINGPONG});
 		}
 
 		// set the velocity
@@ -220,7 +246,7 @@ class Player extends FlxSprite
 
 	function brighten(_)
 	{
-		setColorTransform(1, 1, 1, 1, 20, 20, 20, 0);
+		setColorTransform((1 / DIM_FACTOR), (1 / DIM_FACTOR), (1 / DIM_FACTOR));
 	}
 
 	function interruptSpeed()

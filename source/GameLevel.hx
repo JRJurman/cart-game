@@ -80,7 +80,6 @@ class GameLevel
 			for (player in level.l_Entities.all_Player)
 			{
 				gamePlayer.setPosition(player.pixelX + coord.x, player.pixelY + coord.y);
-				snapSpriteToTile(gamePlayer, TILE_SIZE);
 
 				// set the loaded level to the one with the player
 			}
@@ -91,7 +90,6 @@ class GameLevel
 			for (target in level.l_Entities.all_Target)
 			{
 				var newTarget = new Target(target.pixelX + coord.x, target.pixelY + coord.y);
-				snapSpriteToTile(newTarget, TILE_SIZE);
 				targets.add(newTarget);
 			}
 		}
@@ -133,7 +131,7 @@ class GameLevel
 		}
 
 		// if we are on a new tile, and we were turning, we must have finished turning
-		var isOnNewTile = gamePlayer.playerCurrentTurningTile != tilesetIdUnderPlayer;
+		var isOnNewTile = gamePlayer.playerCurrentTile != tilesetIdUnderPlayer;
 		if (gamePlayer.playerIsTurning && isOnNewTile)
 		{
 			gamePlayer.finishTurning();
