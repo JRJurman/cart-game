@@ -59,8 +59,6 @@ class GameLevel
 
 		for (coord => level in levelsMap)
 		{
-			trace(coord, level);
-
 			// create a new container to hold the level (we shouldn't need this later)
 			var levelContainer = new flixel.group.FlxSpriteGroup();
 			levelContainers.add(levelContainer);
@@ -80,8 +78,6 @@ class GameLevel
 			for (player in level.l_Entities.all_Player)
 			{
 				gamePlayer.setPosition(player.pixelX + coord.x, player.pixelY + coord.y);
-
-				// set the loaded level to the one with the player
 			}
 
 			// process switches
@@ -211,25 +207,25 @@ class GameLevel
 			// for these we actually need to read the player's current direction
 			// this way we can determine which direction they are turning
 			if (tileUnderPoint == "track-turn-north-west")
-				if (gamePlayer.cartDirection() == "horizontal")
+				if (gamePlayer.getCartDirection() == "horizontal")
 					return "counterclockwise";
 				else
 					return "clockwise";
 
 			if (tileUnderPoint == "track-turn-north-east")
-				if (gamePlayer.cartDirection() == "horizontal")
+				if (gamePlayer.getCartDirection() == "horizontal")
 					return "clockwise";
 				else
 					return "counterclockwise";
 
 			if (tileUnderPoint == "track-turn-south-west")
-				if (gamePlayer.cartDirection() == "horizontal")
+				if (gamePlayer.getCartDirection() == "horizontal")
 					return "clockwise";
 				else
 					return "counterclockwise";
 
 			if (tileUnderPoint == "track-turn-south-east")
-				if (gamePlayer.cartDirection() == "horizontal")
+				if (gamePlayer.getCartDirection() == "horizontal")
 					return "counterclockwise";
 				else
 					return "clockwise";

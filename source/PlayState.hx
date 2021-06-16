@@ -10,7 +10,7 @@ class PlayState extends FlxState
 
 	override public function create()
 	{
-		player = new Player(20, 20);
+		player = new Player(this, 20, 20);
 
 		FlxG.camera.follow(player, SCREEN_BY_SCREEN, 1);
 

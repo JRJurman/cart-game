@@ -3,11 +3,12 @@ package;
 import flixel.FlxG;
 import flixel.FlxObject;
 import flixel.FlxSprite;
+import flixel.FlxState;
+import flixel.group.FlxGroup;
 import flixel.math.FlxPoint;
 import flixel.tweens.FlxEase;
 import flixel.tweens.FlxTween;
 import flixel.util.FlxColor;
-import haxe.xml.Check;
 
 class Player extends FlxSprite
 {
@@ -15,8 +16,7 @@ class Player extends FlxSprite
 	static var ACCELERATION:Float = 1.8;
 	static var MAX_SPEED:Float = 150;
 	static var INITIAL_DRAG:Float = 1600;
-	static var DIM_FACTOR:Float = 0.8;
-	static var GLOW_FACTOR:Int = 2;
+	static var DIM_FACTOR:Float = 0.4;
 
 	public var playerShootingDirection:String = "right";
 	public var playerCartOrientation:Int = 0;
@@ -32,10 +32,14 @@ class Player extends FlxSprite
 	// later (before failing to load it) if we have the animation key
 	var possibleAnimationKeys:Array<String> = new Array<String>();
 
-	// constructor for a new player
-	public function new(x:Float = 0, y:Float = 0)
+	var gameState:FlxState;
+	var playerBullets:FlxTypedGroup<FlxSprite>;
+
+	public function new(state:FlxState, x:Float = 0, y:Float = 0)
 	{
 		super(x, y);
+
+		gameState = state;
 
 		// for now, always facing up, to fix later
 		facing = FlxObject.UP;
@@ -43,6 +47,7 @@ class Player extends FlxSprite
 		// use an animation instead of a simple graphic
 		loadGraphic(AssetPaths.link_ooa_cart_shooting__png, true, 17, 23);
 		buildPlayerAnimations();
+		scaffoldBullets();
 
 		drag.x = drag.y = INITIAL_DRAG;
 
@@ -56,7 +61,8 @@ class Player extends FlxSprite
 		updateAcceleration(elapsed); // call our Acceleration helper function
 		updatePlayerDirection(); // call our function for direction pointing
 		updatePlayerAnimation(); // call our function to update the animation based on player props
-		checkForReverse();
+		checkForReverse(); // call our function to check if we reversed
+		checkForShooting(); // call our function to see if we shot
 
 		// cursor debugging
 		// var sprite = new FlxSprite();
@@ -68,7 +74,10 @@ class Player extends FlxSprite
 		super.update(elapsed);
 	}
 
-	public function cartDirection()
+	/**
+	 * helper function to get which direction the cart is moving, "horizontal" or "vertical"
+	 */
+	public function getCartDirection()
 	{
 		if ((playerCartOrientation % 180) == 0)
 		{
@@ -77,8 +86,11 @@ class Player extends FlxSprite
 		return "vertical";
 	}
 
-	// function to mark the player as turning
-	// they shouldn't be able to do other actions here
+	/**
+	 * function to mark the player as turning
+	 * they shouldn't be able to do other actions here
+	 * @param tileId
+	 */
 	public function startTurning(tileId:Int)
 	{
 		playerIsTurning = true;
@@ -86,6 +98,9 @@ class Player extends FlxSprite
 		playerCurrentTile = tileId;
 	}
 
+	/**
+	 * Helper function to update player state and orientation when the player should turn
+	 */
 	public function turn(rotation:String)
 	{
 		playerIsTurning = true;
@@ -97,29 +112,46 @@ class Player extends FlxSprite
 			playerCartOrientation = ((playerCartOrientation - 90) + 360) % 360;
 	}
 
+	/**
+	 * Helper function to update player state when the player leaves a turning tile
+	 */
 	public function finishTurning()
 	{
 		playerIsTurning = false;
 		playerHasTurned = false;
 	}
 
+	/**
+	 * Stop moving the cart.
+	 */
 	public function stop()
 	{
 		playerHasStopped = true;
-		uninterruptedElapsed = 0;
+		interruptSpeed();
 	}
 
+	/**
+	 * Move the cart.
+	 */
 	public function start()
 	{
 		playerHasStopped = false;
 	}
 
+	/**
+	 * Helper function to reverse the cart.
+	 * Usually called by "checkForReverse()", can be called on it's own
+	 */
 	public function reverse()
 	{
-		uninterruptedElapsed = 0;
+		interruptSpeed();
 		playerCartOrientation = (playerCartOrientation + 180) % 360;
 	}
 
+	/**
+	 * Helper function to reverse the cart
+	 * (Does not happen if the player is turning)
+	 */
 	public function checkForReverse()
 	{
 		// make sure we are not turning
@@ -132,6 +164,9 @@ class Player extends FlxSprite
 		}
 	}
 
+	/**
+	 * Helper function to update the direction that the player is facing
+	 */
 	function updatePlayerDirection()
 	{
 		var previousShootingDirection = playerShootingDirection;
@@ -155,7 +190,9 @@ class Player extends FlxSprite
 			playerShootingDirection = previousShootingDirection;
 	}
 
-	// helper function to add all the animations that are possible with the sprite sheet
+	/**
+	 * helper function to add all the animations that are possible with the sprite sheet
+	 */
 	function buildPlayerAnimations()
 	{
 		// set the animations for our player based on the sprite sheet
@@ -211,7 +248,10 @@ class Player extends FlxSprite
 		return [firstFrame, firstFrame + 1];
 	}
 
-	// helper function for Acceleration
+	/**
+	 * helper function for Acceleration
+	 * @param elapsed
+	 */
 	function updateAcceleration(elapsed:Float)
 	{
 		if (playerHasStopped)
@@ -231,9 +271,8 @@ class Player extends FlxSprite
 			// we've hit max speed!
 			hitMaxSpeed = true;
 
-			// in 0.5 seconds, set the sprite to brighten
-			FlxTween.tween(this, {color: FlxColor.WHITE}, 0.5, {onComplete: brighten, type: ONESHOT});
-			// in 0.3 seconds, start a loop from dark to light
+			// brighten the sprite, and then loop it darker
+			brighten();
 			FlxTween.color(this, 0.3, FlxColor.WHITE.getDarkened(DIM_FACTOR), FlxColor.WHITE, {ease: FlxEase.sineInOut, type: PINGPONG});
 		}
 
@@ -244,9 +283,13 @@ class Player extends FlxSprite
 		velocity.rotate(FlxPoint.weak(0, 0), playerCartOrientation);
 	}
 
-	function brighten(_)
+	/**
+	 * Helper function to brighten the character sprite
+	 */
+	function brighten()
 	{
-		setColorTransform((1 / DIM_FACTOR), (1 / DIM_FACTOR), (1 / DIM_FACTOR));
+		var brightnessOffset = Math.ceil(255 * (DIM_FACTOR / 3));
+		setColorTransform(1, 1, 1, 1, brightnessOffset, brightnessOffset, brightnessOffset);
 	}
 
 	function interruptSpeed()
@@ -260,10 +303,45 @@ class Player extends FlxSprite
 	// helper function for testing facing directions
 	function updatePlayerAnimation()
 	{
-		var animationKey = cartDirection() + "_cart_facing_" + playerShootingDirection;
+		var animationKey = getCartDirection() + "_cart_facing_" + playerShootingDirection;
 		if (possibleAnimationKeys.contains(animationKey))
 		{
 			animation.play(animationKey);
+		}
+	}
+
+	// https://github.com/HaxeFlixel/flixel-demos/blob/master/Arcade/FlxInvaders/source/PlayState.hx
+	function scaffoldBullets()
+	{
+		// First we will instantiate the bullets you fire at targets.
+		var numPlayerBullets:Int = 8;
+		// Initializing the array is very important and easy to forget!
+		playerBullets = new FlxTypedGroup(numPlayerBullets);
+		var sprite:FlxSprite;
+
+		// Create 8 bullets for the player to recycle
+		for (i in 0...numPlayerBullets)
+		{
+			// Instantiate a new sprite offscreen
+			sprite = new FlxSprite(-100, -100);
+			// Create a 2x8 white box
+			sprite.loadGraphic(AssetPaths.bullet__png, false, 8, 8);
+			sprite.exists = false;
+			// Add it to the group of player bullets
+			playerBullets.add(sprite);
+		}
+
+		gameState.add(playerBullets);
+	}
+
+	// helper function to shoot bullet
+	function checkForShooting()
+	{
+		if (FlxG.keys.anyJustPressed([J]))
+		{
+			var bullet:FlxSprite = playerBullets.recycle();
+			bullet.reset(x + width / 2 - bullet.width / 2, y);
+			bullet.velocity.y = -140;
 		}
 	}
 }
