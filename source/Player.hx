@@ -18,6 +18,19 @@ class Player extends FlxSprite
 	static var INITIAL_DRAG:Float = 1600;
 	static var DIM_FACTOR:Float = 0.4;
 
+	static var BULLET_SPEED:Float = 100;
+
+	static var DIRECTION_TO_ANGLE = [
+		"right" => 45 * 0,
+		"upright" => 45 * 7,
+		"up" => 45 * 6,
+		"upleft" => 45 * 5,
+		"left" => 45 * 4,
+		"downleft" => 45 * 3,
+		"down" => 45 * 2,
+		"downright" => 45 * 1,
+	];
+
 	public var playerShootingDirection:String = "right";
 	public var playerCartOrientation:Int = 0;
 	public var playerIsTurning:Bool = false;
@@ -27,13 +40,15 @@ class Player extends FlxSprite
 	public var hitMaxSpeed:Bool = false;
 	public var playerHasStopped:Bool = false;
 	public var playerIsReversing = false;
+	public var playerBullets:FlxTypedGroup<FlxSprite>;
+	public var playerShootingAngle:Int = 0;
+	public var playerVelocity:Float = 0;
 
 	// while not required, we're saving all of these so we can verify
 	// later (before failing to load it) if we have the animation key
 	var possibleAnimationKeys:Array<String> = new Array<String>();
 
 	var gameState:FlxState;
-	var playerBullets:FlxTypedGroup<FlxSprite>;
 
 	public function new(state:FlxState, x:Float = 0, y:Float = 0)
 	{
@@ -188,6 +203,10 @@ class Player extends FlxSprite
 		// if it's still empty string, use whatever we had before
 		if (playerShootingDirection == "")
 			playerShootingDirection = previousShootingDirection;
+
+		// update the playerShootingAngle based on the direction
+		// this is used to control the bullets
+		playerShootingAngle = DIRECTION_TO_ANGLE[playerShootingDirection];
 	}
 
 	/**
@@ -257,6 +276,7 @@ class Player extends FlxSprite
 		if (playerHasStopped)
 		{
 			velocity.set(0, 0);
+			playerVelocity = 0;
 			return;
 		}
 
@@ -264,9 +284,9 @@ class Player extends FlxSprite
 		uninterruptedElapsed += elapsed;
 
 		// determine the new speed
-		var newSpeed:Float = Math.min(SPEED + Math.pow(uninterruptedElapsed, ACCELERATION), MAX_SPEED);
+		playerVelocity = Math.min(SPEED + Math.pow(uninterruptedElapsed, ACCELERATION), MAX_SPEED);
 
-		if (newSpeed == MAX_SPEED && hitMaxSpeed == false)
+		if (playerVelocity == MAX_SPEED && hitMaxSpeed == false)
 		{
 			// we've hit max speed!
 			hitMaxSpeed = true;
@@ -277,7 +297,7 @@ class Player extends FlxSprite
 		}
 
 		// set the velocity
-		velocity.set(newSpeed, 0);
+		velocity.set(playerVelocity, 0);
 
 		// point the velocity in the direction of the cart
 		velocity.rotate(FlxPoint.weak(0, 0), playerCartOrientation);
@@ -313,6 +333,7 @@ class Player extends FlxSprite
 	// https://github.com/HaxeFlixel/flixel-demos/blob/master/Arcade/FlxInvaders/source/PlayState.hx
 	function scaffoldBullets()
 	{
+		trace("scaffoldBullets");
 		// First we will instantiate the bullets you fire at targets.
 		var numPlayerBullets:Int = 8;
 		// Initializing the array is very important and easy to forget!
@@ -322,16 +343,16 @@ class Player extends FlxSprite
 		// Create 8 bullets for the player to recycle
 		for (i in 0...numPlayerBullets)
 		{
+			trace("create bullet");
 			// Instantiate a new sprite offscreen
-			sprite = new FlxSprite(-100, -100);
+			sprite = new FlxSprite(-10, -10);
 			// Create a 2x8 white box
+			// sprite.makeGraphic(2, 8);
 			sprite.loadGraphic(AssetPaths.bullet__png, false, 8, 8);
 			sprite.exists = false;
 			// Add it to the group of player bullets
 			playerBullets.add(sprite);
 		}
-
-		gameState.add(playerBullets);
 	}
 
 	// helper function to shoot bullet
@@ -339,9 +360,14 @@ class Player extends FlxSprite
 	{
 		if (FlxG.keys.anyJustPressed([J]))
 		{
+			trace("shooting bullet");
+			// recycle one of the bullets
 			var bullet:FlxSprite = playerBullets.recycle();
 			bullet.reset(x + width / 2 - bullet.width / 2, y);
-			bullet.velocity.y = -140;
+
+			// set the bullet shooting in the direction we are pointing
+			bullet.velocity.set(playerVelocity + BULLET_SPEED, 0);
+			bullet.velocity.rotate(FlxPoint.weak(0, 0), playerShootingAngle);
 		}
 	}
 }

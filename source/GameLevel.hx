@@ -56,6 +56,7 @@ class GameLevel
 		gameState.add(levelContainers);
 		gameState.add(gamePlayer);
 		gameState.add(targets);
+		gameState.add(gamePlayer.playerBullets);
 
 		for (coord => level in levelsMap)
 		{
