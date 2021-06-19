@@ -77,6 +77,9 @@ class GameLevel
 			// render the tiles on the game
 			level.l_Map.render(levelContainer);
 
+			// expand the world bounds based on the level rendered
+			FlxG.worldBounds.setSize(coord.x + level.pxWid, coord.y + level.pxHei);
+
 			// load player object
 			for (player in level.l_Entities.all_Player)
 			{
@@ -112,8 +115,6 @@ class GameLevel
 	 */
 	function processPlayerTurn()
 	{
-		trace(gamePlayer.playerIsTurning, gamePlayer.playerHasTurned);
-
 		// get the tileset id (the type of tile), under the player
 		var tilesetIdUnderPlayer = getTilesetIdUnderPoint(gamePlayer.getMidpoint());
 

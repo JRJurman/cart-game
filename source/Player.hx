@@ -334,7 +334,6 @@ class Player extends FlxSprite
 	// https://github.com/HaxeFlixel/flixel-demos/blob/master/Arcade/FlxInvaders/source/PlayState.hx
 	function scaffoldBullets()
 	{
-		trace("scaffoldBullets");
 		// First we will instantiate the bullets you fire at targets.
 		var numPlayerBullets:Int = 8;
 		// Initializing the array is very important and easy to forget!
