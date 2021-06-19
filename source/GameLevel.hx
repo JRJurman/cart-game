@@ -1,5 +1,7 @@
 package;
 
+import flixel.FlxG;
+import flixel.FlxObject;
 import flixel.FlxSprite;
 import flixel.FlxState;
 import flixel.group.FlxGroup.FlxTypedGroup;
@@ -92,12 +94,15 @@ class GameLevel
 		}
 	}
 
-	public function update()
+	public function update(elapsed:Float)
 	{
 		// for debugging
 		// var tilesetIdUnderMouse = getTilesetIdUnderPoint(FlxG.mouse.getPosition());
 
 		processPlayerTurn();
+
+		// process any player bullets and the targets
+		processPlayerBullets();
 	}
 
 	/**
@@ -107,6 +112,8 @@ class GameLevel
 	 */
 	function processPlayerTurn()
 	{
+		trace(gamePlayer.playerIsTurning, gamePlayer.playerHasTurned);
+
 		// get the tileset id (the type of tile), under the player
 		var tilesetIdUnderPlayer = getTilesetIdUnderPoint(gamePlayer.getMidpoint());
 
@@ -115,39 +122,47 @@ class GameLevel
 
 		// if trackDirection is null, we aren't on a track, don't change anything
 		if (trackDirection == null)
-			return null;
+			return;
 
+		// if we are on a stop track, stop the player
 		if (trackDirection == "stop")
 		{
+			// only stop once we are in the middle of the tile
 			var shouldStop = isPastMidpoint(gamePlayer, gamePlayer.playerCartOrientation, TILE_SIZE);
 
 			if (shouldStop)
 				gamePlayer.stop();
 
-			return null;
+			return;
 		}
 
-		// if we are on a new tile, and we were turning, we must have finished turning
+		// determine if we are on a new tile
 		var isOnNewTile = gamePlayer.playerCurrentTile != tilesetIdUnderPlayer;
-		if (gamePlayer.playerIsTurning && isOnNewTile)
-		{
-			gamePlayer.finishTurning();
-			return null;
-		}
 
 		// determine if this tile is a turning track (otherwise it's a straight track)
 		var isOnTurningTrack = trackDirection.indexOf("clockwise") > -1;
 
-		// if we aren't turning, just end the function (we have nothing else to do)
-		if (!isOnTurningTrack)
-			return null;
+		// if we are on a new tile we need to either finish turning or start turning again
+		if (isOnNewTile)
+		{
+			if (!isOnTurningTrack)
+				gamePlayer.finishTurning(tilesetIdUnderPlayer);
+
+			if (isOnTurningTrack)
+				gamePlayer.startTurning(tilesetIdUnderPlayer);
+
+			return;
+		}
 
 		// if we aren't already turning, we can start turning now
-		if (!gamePlayer.playerIsTurning)
+		if (isOnNewTile && isOnTurningTrack)
 		{
-			gamePlayer.startTurning(tilesetIdUnderPlayer);
-			return null;
+			return;
 		}
+
+		// if we aren't turning, just end the function (we have nothing else to do)
+		if (!isOnTurningTrack)
+			return;
 
 		// if we are turning, (and haven't turned yet)
 		// wait until we are at the center of the tile, and then snap and turn
@@ -163,7 +178,7 @@ class GameLevel
 			}
 		}
 
-		return null;
+		return;
 	}
 
 	/**
@@ -324,5 +339,20 @@ class GameLevel
 	{
 		sprite.x = Math.round(sprite.x / (tileSize / 2)) * (tileSize / 2);
 		sprite.y = Math.round(sprite.y / (tileSize / 2)) * (tileSize / 2);
+	}
+
+	/**
+	 * Function to process any collisions between the player's bullets and targets
+	 * @return }
+	 */
+	function processPlayerBullets()
+	{
+		FlxG.collide(gamePlayer.playerBullets, targets, onTargetShot);
+	}
+
+	function onTargetShot(bullet:FlxSprite, target:Target)
+	{
+		bullet.kill();
+		target.kill();
 	}
 }

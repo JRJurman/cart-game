@@ -23,6 +23,6 @@ class PlayState extends FlxState
 	override public function update(elapsed:Float)
 	{
 		super.update(elapsed);
-		level.update();
+		level.update(elapsed);
 	}
 }

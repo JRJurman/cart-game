@@ -18,7 +18,7 @@ class Player extends FlxSprite
 	static var INITIAL_DRAG:Float = 1600;
 	static var DIM_FACTOR:Float = 0.4;
 
-	static var BULLET_SPEED:Float = 100;
+	static var BULLET_SPEED:Float = 175;
 
 	static var DIRECTION_TO_ANGLE = [
 		"right" => 45 * 0,
@@ -130,10 +130,11 @@ class Player extends FlxSprite
 	/**
 	 * Helper function to update player state when the player leaves a turning tile
 	 */
-	public function finishTurning()
+	public function finishTurning(tileId:Int)
 	{
 		playerIsTurning = false;
 		playerHasTurned = false;
+		playerCurrentTile = tileId;
 	}
 
 	/**
@@ -343,7 +344,6 @@ class Player extends FlxSprite
 		// Create 8 bullets for the player to recycle
 		for (i in 0...numPlayerBullets)
 		{
-			trace("create bullet");
 			// Instantiate a new sprite offscreen
 			sprite = new FlxSprite(-10, -10);
 			// Create a 2x8 white box
@@ -360,13 +360,12 @@ class Player extends FlxSprite
 	{
 		if (FlxG.keys.anyJustPressed([J]))
 		{
-			trace("shooting bullet");
 			// recycle one of the bullets
 			var bullet:FlxSprite = playerBullets.recycle();
 			bullet.reset(x + width / 2 - bullet.width / 2, y);
 
 			// set the bullet shooting in the direction we are pointing
-			bullet.velocity.set(playerVelocity + BULLET_SPEED, 0);
+			bullet.velocity.set(BULLET_SPEED, 0);
 			bullet.velocity.rotate(FlxPoint.weak(0, 0), playerShootingAngle);
 		}
 	}
