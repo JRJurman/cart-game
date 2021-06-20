@@ -10,4 +10,12 @@ class WorldCoord
 		this.x = x;
 		this.y = y;
 	}
+
+	/**
+	 * Unique String value of the WorldCoord
+	 */
+	public function hash()
+	{
+		return x + "-" + y;
+	}
 }

@@ -40,7 +40,7 @@ class Player extends FlxSprite
 	public var hitMaxSpeed:Bool = false;
 	public var playerHasStopped:Bool = false;
 	public var playerIsReversing = false;
-	public var playerBullets:FlxTypedGroup<FlxSprite>;
+	public var playerBullets:FlxTypedGroup<PlayerBullet>;
 	public var playerShootingAngle:Int = 0;
 	public var playerVelocity:Float = 0;
 
@@ -162,6 +162,10 @@ class Player extends FlxSprite
 	{
 		interruptSpeed();
 		playerCartOrientation = (playerCartOrientation + 180) % 360;
+
+		// start moving again if the player stopped
+		if (playerHasStopped)
+			start();
 	}
 
 	/**
@@ -336,21 +340,18 @@ class Player extends FlxSprite
 	{
 		// First we will instantiate the bullets you fire at targets.
 		var numPlayerBullets:Int = 8;
+
 		// Initializing the array is very important and easy to forget!
 		playerBullets = new FlxTypedGroup(numPlayerBullets);
-		var sprite:FlxSprite;
+		var bullet:PlayerBullet;
 
 		// Create 8 bullets for the player to recycle
 		for (i in 0...numPlayerBullets)
 		{
 			// Instantiate a new sprite offscreen
-			sprite = new FlxSprite(-10, -10);
-			// Create a 2x8 white box
-			// sprite.makeGraphic(2, 8);
-			sprite.loadGraphic(AssetPaths.bullet__png, false, 8, 8);
-			sprite.exists = false;
+			bullet = new PlayerBullet();
 			// Add it to the group of player bullets
-			playerBullets.add(sprite);
+			playerBullets.add(bullet);
 		}
 	}
 

@@ -20,10 +20,10 @@ class GameLevel
 	var ldtkProject:LdtkLevels;
 	var gameState:FlxState;
 	var gamePlayer:Player;
-	var targets:FlxTypedGroup<Target>;
-	var levelsMap:Map<WorldCoord, LdtkLevels.LdtkLevels_Level>;
+	var targets:FlxTypedGroup<TargetSprite>;
+	var levelsMap:WorldCoordMap<LdtkLevels.LdtkLevels_Level>;
 	var levelContainers:FlxTypedGroup<flixel.group.FlxSpriteGroup>;
-	var worldAutoTiles:Array<AutoTileWithOffset>;
+	var worldAutoTiles:WorldCoordMap<AutoTileWithOffset>;
 	var levelPosX:Int;
 	var levelPosY:Int;
 
@@ -32,22 +32,22 @@ class GameLevel
 		ldtkProject = new LdtkLevels();
 		gameState = state;
 		gamePlayer = player;
-		targets = new FlxTypedGroup<Target>();
+		targets = new FlxTypedGroup<TargetSprite>();
 		levelContainers = new FlxTypedGroup<flixel.group.FlxSpriteGroup>();
-		worldAutoTiles = new Array<AutoTileWithOffset>();
+		worldAutoTiles = new WorldCoordMap<AutoTileWithOffset>();
 
 		var levels = ldtkProject.all_levels;
-		levelsMap = [
-			new WorldCoord(0, 0) => levels.Ethans_test_1,
-			new WorldCoord(256, 0) => levels.Ethans_test_2,
-			new WorldCoord(512, 0) => levels.Ethans_test_3,
-			new WorldCoord(0, 256) => levels.Ethans_test_6,
-			new WorldCoord(256, 256) => levels.Ethans_test_5,
-			new WorldCoord(512, 256) => levels.Ethans_test_4,
-			new WorldCoord(0, 512) => levels.Ethans_test_7,
-			new WorldCoord(256, 512) => levels.Ethans_test_8,
-			new WorldCoord(512, 512) => levels.Ethans_test_9,
-		];
+		levelsMap = new WorldCoordMap<LdtkLevels.LdtkLevels_Level>();
+		levelsMap.set(new WorldCoord(0, 0), levels.Ethans_test_1);
+		levelsMap.set(new WorldCoord(256, 0), levels.Ethans_test_2);
+		levelsMap.set(new WorldCoord(512, 0), levels.Ethans_test_3);
+		levelsMap.set(new WorldCoord(0, 256), levels.Ethans_test_6);
+		levelsMap.set(new WorldCoord(256, 256), levels.Ethans_test_5);
+		levelsMap.set(new WorldCoord(512, 256), levels.Ethans_test_4);
+		levelsMap.set(new WorldCoord(0, 512), levels.Ethans_test_7);
+		levelsMap.set(new WorldCoord(256, 512), levels.Ethans_test_8);
+		levelsMap.set(new WorldCoord(512, 512), levels.Ethans_test_9);
+
 		levelPosX = 0;
 		levelPosY = 0;
 	}
@@ -60,47 +60,82 @@ class GameLevel
 		gameState.add(targets);
 		gameState.add(gamePlayer.playerBullets);
 
-		for (coord => level in levelsMap)
+		for (coord in levelsMap.getCoords())
 		{
-			// create a new container to hold the level (we shouldn't need this later)
-			var levelContainer = new flixel.group.FlxSpriteGroup();
-			levelContainers.add(levelContainer);
-
-			// add all the autotiles (updating the x and y based on the world coords)
-			// these WILL be read to get what tile is under the player
-			worldAutoTiles = worldAutoTiles.concat(level.l_Map.autoTiles.map(AutoTileWithOffset.withOffset(coord)));
-
-			// set the x and y based on the coordinate
-			levelContainer.x = coord.x;
-			levelContainer.y = coord.y;
-
-			// render the tiles on the game
-			level.l_Map.render(levelContainer);
-
-			// expand the world bounds based on the level rendered
-			FlxG.worldBounds.setSize(coord.x + level.pxWid, coord.y + level.pxHei);
-
-			// load player object
-			for (player in level.l_Entities.all_Player)
-			{
-				gamePlayer.setPosition(player.pixelX + coord.x, player.pixelY + coord.y);
-			}
-
-			// process switches
-			for (gameSwitch in level.l_Entities.all_Switch) {}
-			// process targets
-			for (target in level.l_Entities.all_Target)
-			{
-				var newTarget = new Target(target.pixelX + coord.x, target.pixelY + coord.y);
-				targets.add(newTarget);
-			}
+			loadLevel(coord, levelsMap.get(coord).identifier);
 		}
+	}
+
+	public function loadLevel(coord:WorldCoord, levelIdentifier:String)
+	{
+		var level = ldtkProject.getLevel(levelIdentifier);
+
+		// create a new container to hold the level (we shouldn't need this later)
+		var levelContainer = new flixel.group.FlxSpriteGroup();
+		levelContainers.add(levelContainer);
+
+		// add all the autotiles (updating the x and y based on the world coords)
+		// these WILL be read to get what tile is under the player
+		var offsetTiles = level.l_Map.autoTiles.map(AutoTileWithOffset.withOffset(coord));
+		for (tile in offsetTiles)
+		{
+			var newCoord = new WorldCoord(tile.getX(), tile.getY());
+			worldAutoTiles.set(newCoord, tile);
+		}
+
+		// set the x and y based on the coordinate
+		levelContainer.x = coord.x;
+		levelContainer.y = coord.y;
+
+		// render the tiles on the game
+		level.l_Map.render(levelContainer);
+
+		// expand the world bounds based on the level rendered
+		FlxG.worldBounds.setSize(coord.x + level.pxWid, coord.y + level.pxHei);
+
+		for (player in level.l_Entities.all_Player)
+		{
+			gamePlayer.setPosition(player.pixelX + coord.x, player.pixelY + coord.y);
+		}
+
+		// process switches
+		for (levelSwitch in level.l_Entities.all_Level_Switch)
+		{
+			var newSwitch = new Switch(levelSwitch.pixelX + coord.x, levelSwitch.pixelY + coord.y, levelContainer, level.identifier, levelSwitch.f_Level,
+				this);
+			targets.add(newSwitch);
+		}
+
+		// process targets
+		for (target in level.l_Entities.all_Target)
+		{
+			var newTarget = new Target(target.pixelX + coord.x, target.pixelY + coord.y);
+			targets.add(newTarget);
+		}
+	}
+
+	public function renderOtherLevel(levelContainer:FlxSpriteGroup, levelIdentifier:String)
+	{
+		var level = ldtkProject.getLevel(levelIdentifier);
+		levelContainer.clear();
+		var levelCoord = new WorldCoord(Math.floor(levelContainer.x), Math.floor(levelContainer.y));
+
+		var offsetTiles = level.l_Map.autoTiles.map(AutoTileWithOffset.withOffset(levelCoord));
+		for (tile in offsetTiles)
+		{
+			var newCoord = new WorldCoord(tile.getX(), tile.getY());
+			worldAutoTiles.set(newCoord, tile);
+		}
+
+		// render the tiles on the game
+		level.l_Map.render(levelContainer);
 	}
 
 	public function update(elapsed:Float)
 	{
 		// for debugging
 		// var tilesetIdUnderMouse = getTilesetIdUnderPoint(FlxG.mouse.getPosition());
+		// trace(tilesetIdUnderMouse);
 
 		processPlayerTurn();
 
@@ -265,10 +300,10 @@ class GameLevel
 		var x = Math.floor((pointOverTile.x) / TILE_SIZE) * TILE_SIZE;
 		var y = Math.floor((pointOverTile.y) / TILE_SIZE) * TILE_SIZE;
 
-		var tilesAtPoint = worldAutoTiles.filter(tileIsAtLocation(x, y));
-		if (tilesAtPoint.length > 0)
+		var tileAtPoint = worldAutoTiles.get(new WorldCoord(x, y));
+		if (tileAtPoint != null)
 		{
-			return tilesAtPoint[0].autoTile.tileId;
+			return tileAtPoint.autoTile.tileId;
 		}
 
 		return null;
@@ -344,16 +379,15 @@ class GameLevel
 
 	/**
 	 * Function to process any collisions between the player's bullets and targets
-	 * @return }
 	 */
 	function processPlayerBullets()
 	{
-		FlxG.collide(gamePlayer.playerBullets, targets, onTargetShot);
+		FlxG.overlap(gamePlayer.playerBullets, targets, onTargetShot);
 	}
 
-	function onTargetShot(bullet:FlxSprite, target:Target)
+	function onTargetShot(bullet:PlayerBullet, target:Target)
 	{
-		bullet.kill();
-		target.kill();
+		bullet.onHit();
+		target.onHit();
 	}
 }
