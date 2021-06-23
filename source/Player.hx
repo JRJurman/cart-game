@@ -12,9 +12,9 @@ import flixel.util.FlxColor;
 
 class Player extends FlxSprite
 {
-	static var SPEED:Float = 50;
+	public static var SPEED:Float = 50;
+	public static var MAX_SPEED:Float = 150;
 	static var ACCELERATION:Float = 1.8;
-	static var MAX_SPEED:Float = 150;
 	static var INITIAL_DRAG:Float = 1600;
 	static var DIM_FACTOR:Float = 0.4;
 
