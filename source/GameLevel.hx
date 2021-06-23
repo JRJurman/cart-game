@@ -160,11 +160,23 @@ class GameLevel
 		if (trackDirection == null)
 			return;
 
+		// determine if we are on a new tile
+		var isOnNewTile = gamePlayer.playerCurrentTile != tilesetIdUnderPlayer;
+
+		// determine if we are on a tile that is a stop track
+		var isOnStoppingTrack = trackDirection == "stop";
+
+		// determine if this tile is a turning track (otherwise it's a straight track)
+		var isOnTurningTrack = trackDirection.indexOf("clockwise") > -1;
+
+		// determine if we are past the midpoint of the tile (lots of things we don't want to do until we are in the center)
+		var isPastTileCenter = isPastMidpoint(gamePlayer, gamePlayer.playerCartOrientation, TILE_SIZE);
+
 		// if we are on a stop track, stop the player
-		if (trackDirection == "stop")
+		if (isOnStoppingTrack)
 		{
 			// only stop once we are in the middle of the tile
-			var shouldStop = isPastMidpoint(gamePlayer, gamePlayer.playerCartOrientation, TILE_SIZE);
+			var shouldStop = isPastTileCenter;
 
 			if (shouldStop)
 				gamePlayer.stop();
@@ -172,19 +184,12 @@ class GameLevel
 			return;
 		}
 
-		// determine if we are on a new tile
-		var isOnNewTile = gamePlayer.playerCurrentTile != tilesetIdUnderPlayer;
-
-		// determine if this tile is a turning track (otherwise it's a straight track)
-		var isOnTurningTrack = trackDirection.indexOf("clockwise") > -1;
-
-		// if we are on a new tile we need to either finish turning or start turning again
+		// if we are on a new tile we need to update state (usually either finish turning or start turning again)
 		if (isOnNewTile)
 		{
 			if (!isOnTurningTrack)
 				gamePlayer.finishTurning(tilesetIdUnderPlayer);
-
-			if (isOnTurningTrack)
+			else if (isOnTurningTrack)
 				gamePlayer.startTurning(tilesetIdUnderPlayer);
 
 			return;

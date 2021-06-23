@@ -163,9 +163,10 @@ class Player extends FlxSprite
 		interruptSpeed();
 		playerCartOrientation = (playerCartOrientation + 180) % 360;
 
-		// start moving again if the player stopped
 		if (playerHasStopped)
+		{
 			start();
+		}
 	}
 
 	/**
