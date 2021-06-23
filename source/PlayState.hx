@@ -49,6 +49,10 @@ class PlayState extends FlxState
 		level.update(elapsed);
 	}
 
+	/**
+	 * helper function to determine if the camera is moving
+	 * (this happens during the screen-to-screen transition)
+	 */
 	function isCameraMoving()
 	{
 		var xMoved = Math.floor(cameraPosition.x) != Math.floor(FlxG.camera.scroll.x);
@@ -71,7 +75,7 @@ class PlayState extends FlxState
 	 */
 	function updateCameraLerp()
 	{
-		// this equation is based on the MAX and MIN SPEED of the player
+		// the variables here are based on the calculateCameraLerpProperties
 		FlxG.camera.followLerp = lerpSlope * (player.playerVelocity) + lerpConstant;
 	}
 

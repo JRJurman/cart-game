@@ -52,7 +52,11 @@ class GameLevel
 		levelPosY = 0;
 	}
 
-	// https://github.com/deepnight/ldtk-haxe-api/blob/31ff2a75953e7f4ac93408d46cffe90de11313f4/samples/Flixel%20-%20Render%20tile%20layer/src/PlayState.hx
+	/**
+	 * Function to load all the levels in levelsMap.
+	 * Eventually this will randomly generate a map.
+	 * This logic is based on https://github.com/deepnight/ldtk-haxe-api/blob/31ff2a75953e7f4ac93408d46cffe90de11313f4/samples/Flixel%20-%20Render%20tile%20layer/src/PlayState.hx
+	 */
 	public function loadLevels()
 	{
 		gameState.add(levelContainers);
@@ -66,6 +70,11 @@ class GameLevel
 		}
 	}
 
+	/**
+	 * Function to load a level (based on the identifier) at a specific coordinate.
+	 * This function will load all the entities for the level.
+	 * If you just want to render over an existing level, use `renderOtherLevel`
+	 */
 	public function loadLevel(coord:WorldCoord, levelIdentifier:String)
 	{
 		var level = ldtkProject.getLevel(levelIdentifier);
@@ -114,6 +123,11 @@ class GameLevel
 		}
 	}
 
+	/**
+	 * Helper function to render over an existing levelContainer.
+	 * This does not load any entities, and requires an existing container.
+	 * If you want to load a new level with entities, use `loadLevel`.
+	 */
 	public function renderOtherLevel(levelContainer:FlxSpriteGroup, levelIdentifier:String)
 	{
 		var level = ldtkProject.getLevel(levelIdentifier);
@@ -131,6 +145,9 @@ class GameLevel
 		level.l_Map.render(levelContainer);
 	}
 
+	/**
+	 * Helper function that is called by PlayState on every update.
+	 */
 	public function update(elapsed:Float)
 	{
 		// for debugging
@@ -341,7 +358,6 @@ class GameLevel
 	 * Helper function to determine if the sprite is at or beyond the midpoint of a tile
 	 * @param sprite
 	 * @param direction
-	 * @return }
 	 */
 	function isPastMidpoint(player:Player, direction:Int, tileSize:Int)
 	{
@@ -376,6 +392,12 @@ class GameLevel
 		return shouldRotatePlayer;
 	}
 
+	/**
+	 * Function to snap sprite to the tile it is on
+	 * (useful if we are worried that an entity or object could have fallen off a tile)
+	 * @param sprite
+	 * @param tileSize
+	 */
 	function snapSpriteToTile(sprite:FlxSprite, tileSize:Int)
 	{
 		sprite.x = Math.round(sprite.x / (tileSize / 2)) * (tileSize / 2);
@@ -390,7 +412,11 @@ class GameLevel
 		FlxG.overlap(gamePlayer.playerBullets, targets, onTargetShot);
 	}
 
-	function onTargetShot(bullet:PlayerBullet, target:Target)
+	/**
+	 * Generic function to call the bullet and target's onHit function.
+	 * This is used in processPlayerBullets.
+	 */
+	function onTargetShot(bullet:PlayerBullet, target:TargetSprite)
 	{
 		bullet.onHit();
 		target.onHit();

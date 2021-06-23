@@ -14,11 +14,13 @@ class Player extends FlxSprite
 {
 	public static var SPEED:Float = 50;
 	public static var MAX_SPEED:Float = 150;
+
 	static var ACCELERATION:Float = 1.8;
 	static var INITIAL_DRAG:Float = 1600;
 	static var DIM_FACTOR:Float = 0.4;
 
 	static var BULLET_SPEED:Float = 175;
+	static var INITIAL_BULLETS = 8;
 
 	static var DIRECTION_TO_ANGLE = [
 		"right" => 45 * 0,
@@ -245,7 +247,9 @@ class Player extends FlxSprite
 		}
 	}
 
-	// helper function to parse which frames to load from the sprite
+	/**
+	 * helper function to parse which frames to load from the sprite
+	 */
 	function getSpriteAnimationFrames(cartDirection:String, playerDirection:String)
 	{
 		var firstFrame:Int = 0;
@@ -318,6 +322,10 @@ class Player extends FlxSprite
 		setColorTransform(1, 1, 1, 1, brightnessOffset, brightnessOffset, brightnessOffset);
 	}
 
+	/**
+	 * Helper function to reset the speed of the player.
+	 * This also resets any animations happening to indicate player max speed.
+	 */
 	function interruptSpeed()
 	{
 		uninterruptedElapsed = 0;
@@ -326,7 +334,9 @@ class Player extends FlxSprite
 		FlxTween.cancelTweensOf(this);
 	}
 
-	// helper function for testing facing directions
+	/**
+	 * helper function for setting the player animation based on the cart direction and shooting direction
+	 */
 	function updatePlayerAnimation()
 	{
 		var animationKey = getCartDirection() + "_cart_facing_" + playerShootingDirection;
@@ -336,18 +346,18 @@ class Player extends FlxSprite
 		}
 	}
 
-	// https://github.com/HaxeFlixel/flixel-demos/blob/master/Arcade/FlxInvaders/source/PlayState.hx
+	/**
+	 * helper function to generate the initial set of bullets.
+	 * This is based on https://github.com/HaxeFlixel/flixel-demos/blob/master/Arcade/FlxInvaders/source/PlayState.hx
+	 */
 	function scaffoldBullets()
 	{
-		// First we will instantiate the bullets you fire at targets.
-		var numPlayerBullets:Int = 8;
-
 		// Initializing the array is very important and easy to forget!
-		playerBullets = new FlxTypedGroup(numPlayerBullets);
+		playerBullets = new FlxTypedGroup(INITIAL_BULLETS);
 		var bullet:PlayerBullet;
 
 		// Create 8 bullets for the player to recycle
-		for (i in 0...numPlayerBullets)
+		for (i in 0...INITIAL_BULLETS)
 		{
 			// Instantiate a new sprite offscreen
 			bullet = new PlayerBullet();
@@ -356,7 +366,9 @@ class Player extends FlxSprite
 		}
 	}
 
-	// helper function to shoot bullet
+	/**
+	 * helper function to check if we are shooting, and to actually create the bullet
+	 */
 	function checkForShooting()
 	{
 		if (FlxG.keys.anyJustPressed([J]))
